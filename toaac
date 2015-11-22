@@ -1,0 +1,109 @@
+#!/bin/sh
+
+# for debugging
+# set -x
+
+if [ $# = 0 ]; then
+	echo "Usage: `basename $0` mkv [mkv..]"
+	exit 0
+fi
+
+ff_aac_opts="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
+ff_mkv_opts="-y -map 0: -map 1: -c copy -metadata:s:a:0 language=eng"
+
+if which ffmpeg >/dev/null 2>&1; then
+	# we can run
+	:
+else
+	echo "$0 requires ffmpeg in its PATH."
+	exit 1
+fi
+
+if which trash >/dev/null 2>&1; then
+	# yay we can use the trash
+	:
+else
+	echo "Files will not be put in the Trash without the 'trash' command available"
+	echo "You will be prompted for every file deletion instead"
+fi
+
+e() {
+	echo "## `date` -- $@" | sed -e "s/$ff_aac_opts//" -e "s/$ff_mkv_opts//"
+	"$@"  </dev/null 2>&1 | egrep -v '(  lib|  config|  built|^ffmpeg|^Press|    encoder|    creation_time|Non-monotonous DTS)'
+}
+
+del() {
+	if which trash >/dev/null 2>&1; then
+		e trash "$@";
+	else
+		e rm -i "$@";
+	fi
+}
+
+needs_converting() {
+	file="$1"
+	has_ac3=0
+	has_aac=0
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
+	# rturn 0 for true and 1 for false!!!
+	needs_it=1
+	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=0
+	# echo "# needs_it=$needs_it; has_ac3=$has_ac3, has_aac=$has_aac - $file"
+	return $needs_it
+}
+
+ad_aac_to_file() {
+	file="$1"
+	echo "$file"
+	# `originalFile` is the new name of the original file, and is the main source for the new version of `file`
+	originalFile="${file%.*}-orig.mkv"
+	# rename `file` to `originalFile`
+	e mv "$file" "${originalFile}"
+	# `aacFile` is the aac-encoded version of the ac3 audio track in `originalFile`
+	aacFile="${originalFile%.*}".aac
+	# create `aacFile` by converting the ac3 track from `originalFile`
+	e ffmpeg -i "${originalFile}" $ff_aac_opts "${aacFile}"
+	# Combine the track from `aacFile` and all of `originalFile`, to create `file`
+	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${file}"
+	# remove now-useless `aacFile` and `originalFile`
+	del "${originalFile}" "${aacFile}"
+}
+
+# Mac-specific way to get the # of physical CPUs (be conservative)
+cpuCount=$(sysctl hw.physicalcpu | perl -ane 'print "$F[1]\n";')
+backgroundIndex=$cpuCount
+for file
+do
+	if needs_converting "$file"; then
+		if ((backgroundIndex > 0)); then
+			ad_aac_to_file "$file" &
+			((backgroundIndex--))
+			# offset the threads a bit to try to make **some** sense of the output
+			sleep 2
+		else
+			ad_aac_to_file "$file"
+			# wait for any background process to finish
+			if [ "x$(jobs)" != x ]; then
+				echo "## Waiting for processes: $(jobs -p)"
+				wait
+			fi
+			# start over with all threads
+			backgroundIndex=$cpuCount
+		fi
+	else
+		echo "does not need converting: $file"
+	fi
+done
+
+# wait for any background process to finish
+if [ "x$(jobs)" != x ]; then
+	echo "## Waiting for processes: $(jobs -p)"
+	wait
+fi
+
+echo "##"
+echo "##"
+echo "## `date` -- `basename $0`: completed converting $# files"
+echo "##"
+echo "##"
