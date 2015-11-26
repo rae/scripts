@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# check for -f flag to force conversion
+force=0
+if [ "x$1" = "x-f" ]; then
+	# eat the "-f" flag
+	shift
+	# tell the script to *always* do the conversion
+	force=1
+fi
+
 # for debugging
 # set -x
 
@@ -8,7 +17,9 @@ if [ $# = 0 ]; then
 	exit 0
 fi
 
-ff_aac_opts="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
+ff_aac_opts1="-y -vn -c:a aac -strict experimental -ac 2 -b:a 192k -scodec copy"
+ff_aac_opts2="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
+ff_aac_opts="$ff_aac_opts1"
 ff_mkv_opts="-y -map 0: -map 1: -c copy -metadata:s:a:0 language=eng"
 
 if which ffmpeg >/dev/null 2>&1; then
@@ -46,9 +57,10 @@ needs_converting() {
 	has_aac=0
 	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
 	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
-	# rturn 0 for true and 1 for false!!!
+	# return 0 for true and 1 for false!!!
 	needs_it=1
 	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=0
+	[ $force = 1 ] && needs_it=0
 	# echo "# needs_it=$needs_it; has_ac3=$has_ac3, has_aac=$has_aac - $file"
 	return $needs_it
 }
