@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i; do
+	ffmpeg -i "$i" 2>&1 | grep Audio: \
+	| sed -e 's/5.1(side), //' -e 's/ (default)//' -e "s/^/${i}:	/"
+	echo ""
+done
