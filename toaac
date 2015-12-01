@@ -1,27 +1,54 @@
 #!/bin/sh
 
+prog=`basename $0`
+
 # check for -f flag to force conversion
 force=0
-if [ "x$1" = "x-f" ]; then
-	# eat the "-f" flag
-	shift
-	# tell the script to *always* do the conversion
-	force=1
-fi
+
+# be versboe in output
+verbose=0
+
+#
+# had to read http://wiki.bash-hackers.org/howto/getopts_tutorial to figure out "getopts"!
+#
+while getopts fhv opt; do
+	case $opt in
+		f) force=1 ;;
+		v) verbose=1 ;;
+
+		h)	echo "Usage: $prog # converts all *.mkv files"
+			echo "       $prog foo.mkv bar.mkv # only convert specified files"
+			exit 0
+			;;
+	esac
+done
+#
+# remove flags from the paramater list
+shift $((OPTIND-1))
 
 # for debugging
 # set -x
 
 if [ $# = 0 ]; then
-	echo "Usage: `basename $0` mkv [mkv..]"
-	exit 0
+	set *.mkv
+	if [ "x$*" = 'x*.mkv' ]; then
+		echo "${prog}: No files specified and no files match *.mkv"
+		exit 2
+	fi
 fi
 
-ff_aac_opts1="-y -vn -c:a aac -strict experimental -ac 2 -b:a 192k -scodec copy"
-ff_aac_opts2="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
-ff_aac_opts="$ff_aac_opts1"
+## I've been trying various flags to mix aac audio..
+ff_aac_opts1="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
+ff_aac_opts2="-y -vn -c:a aac -strict experimental -ac 2 -b:a 192k -scodec copy"
+ff_aac_opts3='-y -vn -c:a aac -af "pan=stereo|FL=FL+0.5*FC+SL+0.5*LFE|FR=FR+0.5FC+SR+0.5*LFE" -b:a 192k -scodec copy'
+## this is the one I'm trying right now
+ff_aac_opts="$ff_aac_opts2"
+
+## video options - just copy everything, and mark unknown audio as english
+## (should be the aac stream; probably doesn't matter)
 ff_mkv_opts="-y -map 0: -map 1: -c copy -metadata:s:a:0 language=eng"
 
+# check to make sure we have ffmpeg in our path
 if which ffmpeg >/dev/null 2>&1; then
 	# we can run
 	:
@@ -30,6 +57,9 @@ else
 	exit 1
 fi
 
+# "trash" is a really nice command line tool that moves files to the correct directory
+# to have the same effect as dragging files ot the trash, which is nice and undoable!
+#
 if which trash >/dev/null 2>&1; then
 	# yay we can use the trash
 	:
@@ -38,11 +68,14 @@ else
 	echo "You will be prompted for every file deletion instead"
 fi
 
+# "e" prints out a command and then exexcutes it, filtering out some extra ffmpeg output we don't want
 e() {
 	echo "## `date` -- $@" | sed -e "s/$ff_aac_opts//" -e "s/$ff_mkv_opts//"
 	"$@"  </dev/null 2>&1 | egrep -v '(  lib|  config|  built|^ffmpeg|^Press|    encoder|    creation_time|Non-monotonous DTS)'
 }
 
+# "del" removes a file using either the nice "trash" command mentioned above, or interactive "rm"
+# which at least asks the user if it's ok to delete the file
 del() {
 	if which trash >/dev/null 2>&1; then
 		e trash "$@";
@@ -51,57 +84,83 @@ del() {
 	fi
 }
 
+# check to see if a file already has an aac audio stream.
+# Note that shell functions returning "1" for false and "0" for true,
+# the opposite of almost all other languages
 needs_converting() {
 	file="$1"
+	# try to make shell's true/false make more sense by using variables
+	true=0
+	false=1
 	has_ac3=0
 	has_aac=0
-	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
-	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
-	# return 0 for true and 1 for false!!!
-	needs_it=1
-	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=0
-	[ $force = 1 ] && needs_it=0
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=$false
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=$false
+	needs_it=$false
+	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=$true
+	[ $force = 1 ] && needs_it=$true
 	# echo "# needs_it=$needs_it; has_ac3=$has_ac3, has_aac=$has_aac - $file"
 	return $needs_it
 }
 
-ad_aac_to_file() {
+add_aac_to_file() {
 	file="$1"
 	echo "$file"
-	# `originalFile` is the new name of the original file, and is the main source for the new version of `file`
+
+	# `originalFile` is the new name of the original file,
+	# and is the main source for the new version of `file`
 	originalFile="${file%.*}-orig.mkv"
+
 	# rename `file` to `originalFile`
 	e mv "$file" "${originalFile}"
-	# `aacFile` is the aac-encoded version of the ac3 audio track in `originalFile`
+
+	# `aacFile` is the aac-encoded version of the ac3 audio
+	# track in `originalFile`
 	aacFile="${originalFile%.*}".aac
+
 	# create `aacFile` by converting the ac3 track from `originalFile`
 	e ffmpeg -i "${originalFile}" $ff_aac_opts "${aacFile}"
-	# Combine the track from `aacFile` and all of `originalFile`, to create `file`
+
+	# Combine the track from `aacFile` and all of `originalFile`,
+	# to create `file`
 	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${file}"
+
 	# remove now-useless `aacFile` and `originalFile`
 	del "${originalFile}" "${aacFile}"
 }
 
-# Mac-specific way to get the # of physical CPUs (be conservative)
-cpuCount=$(sysctl hw.physicalcpu | perl -ane 'print "$F[1]\n";')
-backgroundIndex=$cpuCount
-for file
-do
+# cpuIndex keeps track of which CPU we are running on; it counts down from
+# the # of CPUs and when it hits zero, the script calls "wait" to wait until
+# all the CPUs are freed up.
+# [In future it would be better to manage this on a CPU-by-CPU basis instead]
+#
+cpuIndex=1
+
+if which sysctl >/dev/null 2>&1; then
+	# Mac-specific way to get the # of physical CPUs
+	# (be conservative - "hw.ncpu" rturns max threads which includes non-physical CPUs)
+	cpuCount=$(sysctl hw.physicalcpu | awk '{print $2}')
+	cpuIndex=$cpuCount
+fi
+
+# iterate over all the files
+for file; do
+	[ $verbose = 1 ] && echo "## processing $file"
 	if needs_converting "$file"; then
-		if ((backgroundIndex > 0)); then
-			ad_aac_to_file "$file" &
-			((backgroundIndex--))
+		if ((cpuIndex > 0)); then
+			add_aac_to_file "$file" &
+			((cpuIndex--))
 			# offset the threads a bit to try to make **some** sense of the output
 			sleep 2
 		else
-			ad_aac_to_file "$file"
+			add_aac_to_file "$file"
 			# wait for any background process to finish
 			if [ "x$(jobs)" != x ]; then
 				echo "## Waiting for processes: $(jobs -p)"
 				wait
 			fi
 			# start over with all threads
-			backgroundIndex=$cpuCount
+			cpuIndex=$cpuCount
 		fi
 	else
 		echo "does not need converting: $file"
