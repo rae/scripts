@@ -78,7 +78,8 @@ e() {
 # which at least asks the user if it's ok to delete the file
 del() {
 	if which trash >/dev/null 2>&1; then
-		e trash "$@";
+		# use "trash -a" so it works even if you're logged in remotely on the command line
+		e trash -a "$@";
 	else
 		e rm -i "$@";
 	fi
