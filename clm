@@ -1,23 +1,31 @@
 #!/usr/bin/env perl
+use Text::Tabs;
+# $tabstop = 4;
+
 my $width=`tput cols`-2;
 my @lines=<>;
 my $longest=0;
+my $fmt = "%-*s  ";
+my $fmtExtrasCount = length($fmt) - length("%-*s");
 
 chomp @lines;
+@lines = expand(@lines);
+
 foreach $line (@lines) {
-	my $len = length($line)+2;
+	my $len = length($line)+$fmtExtrasCount+1;
 	if($len > $longest) {
 		$longest = $len;
 	}
 }
 
 my $columnCount = int($width / $longest);
+print "#count = $columnCount; width=$width; longest=$longest\n";
 
 my $column=0;
 foreach $line (@lines) {
 	my $len = length($line);
-	printf("%-*s", $longest, $line);
-	if(++$column > $columnCount) {
+	printf($fmt, $longest, $line);
+	unless(++$column < $columnCount) {
 		print "\n";
 		$column=0;
 	}
