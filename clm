@@ -14,14 +14,12 @@ foreach $line (@lines) {
 my $columnCount = int($width / $longest);
 
 my $column=0;
-my $newlineJustPrinted=1;
 foreach $line (@lines) {
 	my $len = length($line);
 	printf("%-*s", $longest, $line);
-	$newlineJustPrinted=0;
 	if(++$column > $columnCount) {
 		print "\n";
-		$newlineJustPrinted=1
+		$column=0;
 	}
 }
-print "\n" unless $newlineJustPrinted;
+print "\n" unless $column == 0;
