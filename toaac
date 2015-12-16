@@ -5,7 +5,7 @@ prog=`basename $0`
 # check for -f flag to force conversion
 force=0
 
-# be versboe in output
+# be verbose in output
 verbose=0
 
 #
@@ -70,7 +70,11 @@ fi
 
 # "e" prints out a command and then exexcutes it, filtering out some extra ffmpeg output we don't want
 e() {
-	echo "## `date` -- $@" | sed -e "s/$ff_aac_opts//" -e "s/$ff_mkv_opts//"
+	if [ $verbose = 1 ]; then
+		echo "## `date` -- $@"
+	else
+		echo "## `date` -- $@" | sed -e "s/$ff_aac_opts//" -e "s/$ff_mkv_opts//"
+	fi
 	"$@"  </dev/null 2>&1 | egrep -v '(  lib|  config|  built|^ffmpeg|^Press|    encoder|    creation_time|Non-monotonous DTS)'
 }
 
@@ -106,7 +110,7 @@ needs_converting() {
 
 add_aac_to_file() {
 	file="$1"
-	echo "$file"
+	[ $verbose = 1 ] && echo "## add_aac_to_file $file"
 
 	# `originalFile` is the new name of the original file,
 	# and is the main source for the new version of `file`
