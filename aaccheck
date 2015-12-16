@@ -1,0 +1,22 @@
+#!/bin/sh
+
+needs_converting() {
+	file="$1"
+	has_ac3=0
+	has_aac=0
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
+	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
+	needs_it=1
+	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=0
+	# echo "# needs_it=$needs_it; has_ac3=$has_ac3, has_aac=$has_aac - $file"
+	# return 0 for true and 1 for false!!!
+	return $needs_it
+}
+
+for i; do
+	if needs_converting "$i"; then
+		echo "$i"
+	else
+		echo "# not $i"
+	fi
+done
