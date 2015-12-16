@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-my $width=`tput cols`;
+my $width=`tput cols`-2;
 my @lines=<>;
 my $longest=0;
 
