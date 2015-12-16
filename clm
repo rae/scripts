@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
 use Text::Tabs;
-# $tabstop = 4;
 
 my $width=`tput cols`-2;
 my @lines=<>;
@@ -19,7 +18,6 @@ foreach $line (@lines) {
 }
 
 my $columnCount = int($width / $longest);
-print "#count = $columnCount; width=$width; longest=$longest\n";
 
 my $column=0;
 foreach $line (@lines) {
