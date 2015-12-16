@@ -1,0 +1,27 @@
+#!/usr/bin/env perl
+my $width=`tput cols`;
+my @lines=<>;
+my $longest=0;
+
+chomp @lines;
+foreach $line (@lines) {
+	my $len = length($line)+2;
+	if($len > $longest) {
+		$longest = $len;
+	}
+}
+
+my $columnCount = int($width / $longest);
+
+my $column=0;
+my $newlineJustPrinted=1;
+foreach $line (@lines) {
+	my $len = length($line);
+	printf("%-*s", $longest, $line);
+	$newlineJustPrinted=0;
+	if(++$column > $columnCount) {
+		print "\n";
+		$newlineJustPrinted=1
+	}
+}
+print "\n" unless $newlineJustPrinted;
