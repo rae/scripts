@@ -15,8 +15,10 @@ needs_converting() {
 
 for i; do
 	if needs_converting "$i"; then
-		echo "$i"
+		echo "# ❌  $i"
 	else
-		echo "# not $i"
+		echo "# ✅  $i"
 	fi
 done
+
+
