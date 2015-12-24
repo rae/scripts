@@ -30,7 +30,7 @@ shift $((OPTIND-1))
 # set -x
 
 if [ $# = 0 ]; then
-	set *.mkv
+	set *.[Mm][Kk][Vv]
 	if [ "x$*" = 'x*.mkv' ]; then
 		echo "${prog}: No files specified and no files match *.mkv"
 		exit 2
@@ -114,7 +114,8 @@ add_aac_to_file() {
 
 	# `originalFile` is the new name of the original file,
 	# and is the main source for the new version of `file`
-	originalFile="${file%.*}-orig.mkv"
+	ext="${file#*.}"
+	originalFile="${file%.*}-orig.${ext}"
 
 	# rename `file` to `originalFile`
 	e mv "$file" "${originalFile}"
@@ -128,7 +129,7 @@ add_aac_to_file() {
 
 	# Combine the track from `aacFile` and all of `originalFile`,
 	# to create `file`
-	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${file}"
+	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${file}.mkv"
 
 	# remove now-useless `aacFile` and `originalFile`
 	del "${originalFile}" "${aacFile}"
