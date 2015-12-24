@@ -1,23 +1,87 @@
 #!/bin/sh
 
+prog=`basename $0`
+
+# do not be verbose in output
+verbose=0
+
+# do not debug by default
+debug=0
+
+# extensions to check for
+extlist=(avi mkv mp4 m4v flv)
+
+#
+# had to read http://wiki.bash-hackers.org/howto/getopts_tutorial to figure out "getopts"!
+#
+while getopts dfhv opt; do
+	case $opt in
+		v) verbose=1 ;;
+		d) debug=1 ;;
+		h)	echo "Usage: $prog # checks all files ending in: ${extlist[@]}"
+			echo "       $prog foo.mkv bar.mkv # only check specified files"
+			echo "       $prog -v # spits a list of files missing aac to stdout"
+			echo "                # in addition to the usual commented info"
+			exit 0
+			;;
+	esac
+done
+#
+# remove flags from the paramater list
+shift $((OPTIND-1))
+
+# for debugging
+# set -x
+
+found=0
+if [ $# = 0 ]; then
+	for ext in ${extlist[@]}; do
+		set *.$ext
+		if [ "x$*" != 'x*.'"$ext" ]; then
+			found=1
+			break
+		fi
+	done
+fi
+if [ $found == 0 ]; then
+	echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
+	exit 2
+fi	
+
 needs_converting() {
 	file="$1"
 	has_ac3=0
 	has_aac=0
-	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
-	ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
+	if [ $debug = 1 ]; then
+		echo "ffmpeg -i $file:"
+		ffmpeg -i "$file" 2>&1 | tee /dev/tty | grep 'Audio: ac3' > /dev/null && has_ac3=1
+		ffmpeg -i "$file" 2>&1 | tee /dev/tty | grep 'Audio: aac' > /dev/null && has_aac=1
+		echo ""
+	else
+		ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=1
+		ffmpeg -i "$file" 2>&1 | grep 'Audio: aac' > /dev/null && has_aac=1
+	fi
 	needs_it=1
 	[ $has_ac3 = 1 -a $has_aac = 0 ] && needs_it=0
-	# echo "# needs_it=$needs_it; has_ac3=$has_ac3, has_aac=$has_aac - $file"
+
 	# return 0 for true and 1 for false!!!
 	return $needs_it
 }
 
 for i; do
 	if needs_converting "$i"; then
-		echo "# ❌  $i"
+		if [ $verbose = 0 ]; then
+			echo "# ❌  $i"
+		else
+			echo "# ❌  $i" >&2
+			echo "$i"
+		fi
 	else
-		echo "# ✅  $i"
+		if [ $verbose = 0 ]; then
+			echo "# ✅  $i"
+		else
+			echo "# ✅  $i" >&2
+		fi
 	fi
 done
 
