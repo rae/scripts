@@ -8,6 +8,13 @@ force=0
 # be verbose in output
 verbose=0
 
+# process id of this script
+script_pid=$$
+
+# try to make shell's true/false make more sense by using variables
+true=0
+false=1
+
 #
 # had to read http://wiki.bash-hackers.org/howto/getopts_tutorial to figure out "getopts"!
 #
@@ -37,6 +44,9 @@ if [ $# = 0 ]; then
 	fi
 fi
 
+fileCount=0
+dirCount=0
+
 ## I've been trying various flags to mix aac audio..
 ff_aac_opts1="-y -vn -acodec aac -strict experimental -ac 2 -ar 44100 -ab 192k"
 ff_aac_opts2="-y -vn -c:a aac -strict experimental -ac 2 -b:a 192k -scodec copy"
@@ -46,7 +56,7 @@ ff_aac_opts="$ff_aac_opts2"
 
 ## video options - just copy everything, and mark unknown audio as english
 ## (should be the aac stream; probably doesn't matter)
-ff_mkv_opts="-y -map 0: -map 1: -c copy -metadata:s:a:0 language=eng"
+ff_mkv_opts="-y -map 0: -map 1: -c copy -flags +global_header -metadata:s:a:0 language=eng"
 
 # check to make sure we have ffmpeg in our path
 if which ffmpeg >/dev/null 2>&1; then
@@ -94,9 +104,6 @@ del() {
 # the opposite of almost all other languages
 needs_converting() {
 	file="$1"
-	# try to make shell's true/false make more sense by using variables
-	true=0
-	false=1
 	has_ac3=0
 	has_aac=0
 	ffmpeg -i "$file" 2>&1 | grep 'Audio: ac3' > /dev/null && has_ac3=$false
@@ -108,14 +115,46 @@ needs_converting() {
 	return $needs_it
 }
 
+assert_non_zero_size() {
+	file="$1"
+	d=($(wc -c "$file"))
+	if (( ${d[0]} == 0 )); then
+		echo "###!!! file has zero size: $file" >&2
+		echo "###!!! aborting.." >&2
+		exit 2
+	fi
+}
+
+larger_than() {
+	larger="$1"
+	smaller="$2"
+	larger_wc=($(wc -c "$larger"))
+	larger_size=${larger_wc[0]}
+	smaller_wc=($(wc -c "$smaller"))
+	smaller_size=${smaller_wc[0]}
+	if (( larger_size <= smaller_size )); then
+		echo "### ❌  file is smaller($larger_size) than original($smaller_size): $larger" >&2
+		return $false
+	else
+		echo "### ✅  file is larger($larger_size) than original($smaller_size): $larger" >&2
+		return $true
+	fi
+}
+
 add_aac_to_file() {
 	file="$1"
 	[ $verbose = 1 ] && echo "## add_aac_to_file $file"
 
 	# `originalFile` is the new name of the original file,
 	# and is the main source for the new version of `file`
-	ext="${file#*.}"
-	originalFile="${file%.*}-orig.${ext}"
+	ext="${file##*.}"
+	base="${file%.*}"
+
+	# originalFile="${file%.*}-orig.${ext}"
+	originalFile="${base}-orig.${ext}"
+
+	# `abortedFile` is used in case of an error
+	abortedFile="${base}-aborted.${ext}"
 
 	# rename `file` to `originalFile`
 	e mv "$file" "${originalFile}"
@@ -124,15 +163,33 @@ add_aac_to_file() {
 	# track in `originalFile`
 	aacFile="${originalFile%.*}".aac
 
+	#`mkvFile` is the original file with the aac track added to it
+	mkvFile="${base}.mkv"
+
 	# create `aacFile` by converting the ac3 track from `originalFile`
 	e ffmpeg -i "${originalFile}" $ff_aac_opts "${aacFile}"
+	assert_non_zero_size "${aacFile}"
 
 	# Combine the track from `aacFile` and all of `originalFile`,
 	# to create `file`
-	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${file}.mkv"
+	e ffmpeg -i "${aacFile}" -i "${originalFile}" $ff_mkv_opts "${mkvFile}"
+	assert_non_zero_size "${mkvFile}"
+	# check that the new file is **larger** than the original, which it **must** be
+	if larger_than "${mkvFile}" "${originalFile}"; then
+		# all is good, remove now-useless `aacFile` and `originalFile`
+		del "${originalFile}" "${aacFile}"
+	else
+		# restore file to original names, renaming aborted file to `...-aborted...`
+		mv "${mkvFile}" "${abortedFile}"
+		mv "${originalFile}" "${file}"
 
-	# remove now-useless `aacFile` and `originalFile`
-	del "${originalFile}" "${aacFile}"
+		# should it be trashed as well? Hmm ...
+		echo "### ❌ aborting.." >&2
+
+		# kill the process instead of just exiting since child processes
+		# may be .. still processing
+		kill $script_pid
+	fi
 }
 
 # cpuIndex keeps track of which CPU we are running on; it counts down from
@@ -146,31 +203,57 @@ if which sysctl >/dev/null 2>&1; then
 	# Mac-specific way to get the # of physical CPUs
 	# (be conservative - "hw.ncpu" rturns max threads which includes non-physical CPUs)
 	cpuCount=$(sysctl hw.physicalcpu | awk '{print $2}')
+	# less one for zero-based counting
+	((cpuCount--))
 	cpuIndex=$cpuCount
 fi
 
+convert_if_needed() {
+	file=$1
+	if [ -d "$file" ]; then
+		((dirCount++))
+		echo "# converting files in $file"
+		cd "$file"
+		localFiles=(*.[Mm][Kk][Vv])
+		if [ "$localFiles" = "*.[Mm][Kk][Vv]" ]; then
+			echo "No mkv files in $file"
+		else
+			for localFile in *.[Mm][Kk][Vv]; do
+				convert_if_needed "$localFile" > /dev/null
+				echo "## $localFile"
+			done
+		fi
+		echo "# leaving $file"
+		echo ""
+		cd ..
+	else
+		((fileCount++))
+		[ $verbose = 1 ] && echo "## processing $file"
+		if needs_converting "$file"; then
+			if ((cpuIndex > 0)); then
+				add_aac_to_file "$file" &
+				((cpuIndex--))
+				# offset the threads a bit to try to make **some** sense of the output
+				sleep 2
+			else
+				add_aac_to_file "$file"
+				# wait for any background process to finish
+				if [ "x$(jobs)" != x ]; then
+					echo "## Waiting for processes: $(jobs -p)"
+					wait
+				fi
+				# start over with all threads
+				cpuIndex=$cpuCount
+			fi
+		else
+			echo "does not need converting: $file"
+		fi
+	fi
+}
+
 # iterate over all the files
 for file; do
-	[ $verbose = 1 ] && echo "## processing $file"
-	if needs_converting "$file"; then
-		if ((cpuIndex > 0)); then
-			add_aac_to_file "$file" &
-			((cpuIndex--))
-			# offset the threads a bit to try to make **some** sense of the output
-			sleep 2
-		else
-			add_aac_to_file "$file"
-			# wait for any background process to finish
-			if [ "x$(jobs)" != x ]; then
-				echo "## Waiting for processes: $(jobs -p)"
-				wait
-			fi
-			# start over with all threads
-			cpuIndex=$cpuCount
-		fi
-	else
-		echo "does not need converting: $file"
-	fi
+	convert_if_needed "$file"
 done
 
 # wait for any background process to finish
@@ -181,6 +264,6 @@ fi
 
 echo "##"
 echo "##"
-echo "## `date` -- `basename $0`: completed converting $# files"
+echo "## `date` -- `basename $0`: completed $fileCount files, $dirCount dirs"
 echo "##"
 echo "##"
