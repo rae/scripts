@@ -8,18 +8,23 @@ verbose=0
 # do not debug by default
 debug=0
 
+# don't be quiet by default
+quiet=0
+
 # extensions to check for
 extlist=(avi mkv mp4 m4v flv)
 
 #
 # had to read http://wiki.bash-hackers.org/howto/getopts_tutorial to figure out "getopts"!
 #
-while getopts dfhv opt; do
+while getopts dfhqv opt; do
 	case $opt in
 		v) verbose=1 ;;
 		d) debug=1 ;;
+		q) quiet=1; verbose=1 ;;
 		h)	echo "Usage: $prog # checks all files ending in: ${extlist[@]}"
 			echo "       $prog foo.mkv bar.mkv # only check specified files"
+			echo "       $prog -q # don't show state of every file; (implies -v)"
 			echo "       $prog -v # spits a list of files missing aac to stdout"
 			echo "                # in addition to the usual commented info"
 			exit 0
@@ -42,11 +47,11 @@ if [ $# = 0 ]; then
 			break
 		fi
 	done
+	if [ $found == 0 ]; then
+		echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
+		exit 2
+	fi	
 fi
-if [ $found == 0 ]; then
-	echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
-	exit 2
-fi	
 
 needs_converting() {
 	file="$1"
@@ -73,14 +78,14 @@ for i; do
 		if [ $verbose = 0 ]; then
 			echo "# ❌  $i"
 		else
-			echo "# ❌  $i" >&2
+			[ $quiet == 0 ] && echo "# ❌  $i" >&2
 			echo "$i"
 		fi
 	else
 		if [ $verbose = 0 ]; then
-			echo "# ✅  $i"
+			[ $quiet == 0 ] && echo "# ✅  $i"
 		else
-			echo "# ✅  $i" >&2
+			[ $quiet == 0 ] && echo "# ✅  $i" >&2
 		fi
 	fi
 done
