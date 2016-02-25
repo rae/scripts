@@ -132,11 +132,13 @@ larger_than() {
 	larger_size=${larger_wc[0]}
 	smaller_wc=($(wc -c "$smaller"))
 	smaller_size=${smaller_wc[0]}
+	largerMB="$((larger_size/1024/1024)) MB"
+	smallerMB="$((smaller_size/1024/1024)) MB"
 	if (( larger_size <= smaller_size )); then
-		echo "### ❌  file is smaller($larger_size) than original($smaller_size): $larger" >&2
+		echo "### ❌  file is smaller[$largerMB] than original[$smallerMB]: $larger" >&2
 		return $false
 	else
-		echo "### ✅  file is larger($larger_size) than original($smaller_size): $larger" >&2
+		echo "### ✅  file is larger[$largerMB] than original[$smallerMB]: $larger" >&2
 		return $true
 	fi
 }
