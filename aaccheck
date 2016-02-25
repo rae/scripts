@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# for debugging
+# set -x
+
 prog=`basename $0`
 
 # do not be verbose in output
@@ -35,11 +38,9 @@ done
 # remove flags from the paramater list
 shift $((OPTIND-1))
 
-# for debugging
-# set -x
-
-found=0
+found=1
 if [ $# = 0 ]; then
+	found=0
 	for ext in ${extlist[@]}; do
 		set *.$ext
 		if [ "x$*" != 'x*.'"$ext" ]; then
@@ -47,14 +48,19 @@ if [ $# = 0 ]; then
 			break
 		fi
 	done
-	if [ $found == 0 ]; then
-		echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
-		exit 2
-	fi	
 fi
+if [ $found = 0 ]; then
+	echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
+	exit 2
+fi	
 
 needs_converting() {
 	file="$1"
+	if [ ! -r "$file" -o -d "$file" ]; then
+		# return 1 for false
+		return 1
+	fi
+
 	has_ac3=0
 	has_aac=0
 	if [ $debug = 1 ]; then
@@ -73,20 +79,35 @@ needs_converting() {
 	return $needs_it
 }
 
-for i; do
-	if needs_converting "$i"; then
+conversion_check() {
+	file="$1"
+	if [ ! -r "$file" -o -d "$file" ]; then
+		echo "# ⚠️  $file - not readable" >&2
+		return
+	fi
+	if needs_converting "$file"; then
 		if [ $verbose = 0 ]; then
-			echo "# ❌  $i"
+			echo "# ❌  $file"
 		else
-			[ $quiet == 0 ] && echo "# ❌  $i" >&2
-			echo "$i"
+			[ $quiet == 0 ] && echo "# ❌  $file" >&2
+			echo "$file"
 		fi
 	else
 		if [ $verbose = 0 ]; then
-			[ $quiet == 0 ] && echo "# ✅  $i"
+			[ $quiet == 0 ] && echo "# ✅  $file"
 		else
-			[ $quiet == 0 ] && echo "# ✅  $i" >&2
+			[ $quiet == 0 ] && echo "# ✅  $file" >&2
 		fi
+	fi
+}
+
+for i; do
+	if [ -d "$i" ]; then
+		for j in "$i"/*.mkv; do
+			conversion_check "$j"
+		done
+	else
+		conversion_check "$i"
 	fi
 done
 
