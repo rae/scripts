@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+#
+# Very basic example of using Python and IMAP to iterate over emails in a
+# gmail folder/label.  This code is released into the public domain.
+#
+# RKI July 2013
+# http://www.voidynullness.net/blog/2013/07/25/gmail-email-with-python-via-imap/
+#
+import sys
+import os
+import re
+import imaplib
+import getpass
+import email
+import email.header
+import datetime
+
+EMAIL_ACCOUNT = "rae@tnir.org"
+EMAIL_SERVER = "mail.tnir.org"
+clearances = {
+	"INBOX.spry-notices": r"notifier\@crashlytics\.com",
+	"INBOX.notices": r"gitlab\@videolan\.org"
+}
+RC_FILE = ".checksprynotices"
+RC_PATH = '%s/%s' % (os.environ['HOME'], RC_FILE)
+
+def process_mailbox(M, expr):
+    """
+    Do something with emails messages in the folder.  
+    For the sake of this example, print some headers.
+    """
+
+    rv, data = M.search(None, "UNSEEN")
+    if rv != 'OK':
+        print "No messages found!"
+        return
+
+    for num in data[0].split():
+        rv, data = M.fetch(num, '(RFC822)')
+        if rv != 'OK':
+            print "ERROR getting message", num
+            return
+        msg = email.message_from_string(data[0][1])
+        decode = email.Header.decode_header(msg['From'])[0]
+        from_header = unicode(decode[0])
+        print 'Message %s: %s' % (num, from_header)
+        print 'Raw Date:', msg['Date']
+        if re.match(expr, from_header):
+            print "Found unread email from %s" % expr
+
+
+M = imaplib.IMAP4_SSL(EMAIL_SERVER)
+
+password = None
+
+if os.path.isfile(RC_PATH):
+    with open(RC_PATH, 'r') as rcFile:
+        password=rcFile.read().replace('\n', '')
+
+if password is None:
+    password = getpass.getpass()
+    if password is not None:
+		# Save password in rcfile
+        with open(RC_PATH, 'w') as rcFile:
+            rcFile.write(password)
+
+if password is None:
+    print "Login cancelled"
+    sys.exit(1)
+
+try:
+    rv, data = M.login(EMAIL_ACCOUNT, password)
+except imaplib.IMAP4.error:
+    print "Password failed"
+    sys.exit(1)
+
+print rv, data
+
+rv, mailboxes = M.list()
+# if rv == 'OK':
+#     print "Mailboxes:"
+#     for mbox in mailboxes:
+#         print " ".join(mbox.split()[2:])
+
+for folder, expr in clearances.iteritems():
+	print "Folder: %s" % folder
+	rv, data = M.select(folder)
+	if rv == 'OK':
+	    # print "Processing mailbox..."
+	    process_mailbox(M, expr)
+	    M.close()
+	else:
+	    print "ERROR: Unable to open mailbox ", rv
+
+M.logout()
+
