@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# tomkv
+#	- convert all arguments to mkv files
+#	  resulting mkv files are stored in $PWD/"mkv"
+#
+
+# name of directory in PWD where we will put mkv files
+mkvdir=mkv
+
+# name of output file, tracked in case of interrupt
+out=""
+
+# how many files have been completed
+completedCount=0
+
+# how many files have been processed in this run
+processedCount=0
+
+# total number of files we are working on
+total=$#
+
+# start time in Julian seconds
+start=$(date +%s)
+
+# make the mkv directory or die trying
+mkdir -p mkv || exit 1
+
+# length of date string
+tmp=$(date +"%H:%M:%S")
+dateLen=${#tmp}
+
+# print final report
+finish() {
+	echo "`date` --- processed ${processedCount} files."
+}
+
+cleanup() {
+	if [ "${out}xx" != xx ]; then
+		echo "User interrupt; deleting $out"
+		rm "${out}"
+	else
+		echo "User interrupt"
+	fi
+	finish
+	exit 1
+}
+
+# report printed as each files starts processing
+report() {
+	now=$(date +%s)
+	delta=$((now-start));
+	etaMessagePrefix="ETA "
+	etaMessageLength=$((dateLen+${#etaMessagePrefix}))
+	remainingCount=$((total-completedCount))
+	etaMessage=$(printf "%-${etaMessageLength}s" "no ETA")
+	averageMin="00"
+	averageSec="00"
+	if [ ${completedCount} -gt 0 ]; then
+		average=$((delta/completedCount))
+		averageMin=$(printf "%02.2d" $((average/60)) )
+		averageSec=$(printf "%02.2d" $((average%60)) )
+		eta="$((now+average*remainingCount))"
+		if [ $remainingCount = 0 ]; then
+			etaMessage=$(printf "%-${etaMessageLength}s" "ETA: now")
+		else
+			etaMessage="${etaMessagePrefix}$(date -r $eta +"%H:%M:%S")"
+		fi
+	fi
+	# show completedCount+1 as the # of the file we are *currently* working on
+	displayCount=$(printf "%03.3d" $((completedCount+1)) )
+	echo "`date` -- #${displayCount} / $total; ${averageMin}m${averageSec}s average, ${etaMessage} --- processing ${mp4}"
+}
+
+trap 'cleanup' INT
+
+# iterate over all arguments
+for mp4; do
+	out=${mkvdir}/"${mp4%.*}".mkv
+	if [ -r "${out}" ]; then
+		((completedCount++))
+		echo "# ${out} already exists - skipping"
+		continue
+	fi
+	report
+	# use `nice` to be .. nice
+	nice ffmpeg -i "${mp4}" "${out}" > /dev/null 2>&1
+	((completedCount++))
+	((processedCount++))
+done
+
+finish
