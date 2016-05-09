@@ -1,0 +1,71 @@
+#!/bin/sh
+
+ROOT="${PWD}"
+
+pcount() {
+	for file; do
+		ffmpeg -i "${file}" 2>&1 \
+		| grep -i video \
+		| perl -ane 'foreach $i (@F) {
+			if($i =~ /(\d\d\d+)x(\d\d\d+)/) {
+				$w=$1; $h=$2;
+				$h=1080 if $w == 1920 && $h < 1080;
+				$h=720 if $w == 1280 && $h < 720;
+				print "$h\n";
+				last;
+			}
+		}'
+	done
+}
+
+fix() {
+	for file in "${@}"; do
+		# echo "# checking $file"
+		if [ -d "$file" ]; then
+			path="$PWD/$file"
+			partial="${path#${ROOT}/}"
+			echo "# [ $partial"
+			pushd "$file" >& /dev/null
+			fix *
+			popd >& /dev/null
+			echo "# ]"
+			continue
+		fi
+		ext=$(echo "${file##*.}" | tr '[A-Z]' '[a-z]')
+		base=$(echo "${file%.*}")
+		if [ "x${ext}" = x ]; then
+			# echo "# no extension: $i"
+			continue
+		fi
+		if [   "${ext}" != mov \
+			-a "${ext}" != mp4 \
+			-a "${ext}" != avi \
+			-a "${ext}" != mkv \
+			-a "${ext}" != m4v \
+			-a "${ext}" != mpg ]; then
+			# echo "# not a video: $i"
+			continue
+		fi
+		realRes=$(pcount "${file}")
+		if [[ $file =~ (.*)\.([0-9]+p)\.(.*) ]]; then
+			base="${BASH_REMATCH[1]}"
+			p="${BASH_REMATCH[2]}"
+			post="${BASH_REMATCH[3]}"
+			newFile="${base}.${realRes}p.${post}"
+			if [ $p != "${realRes}p" ]; then
+				# uh-oh - wrong resolution
+				echo "mv ${file}" "${newFile}"
+			fi
+			# echo "$ext - $base [ $p / $realRes ] $post"
+		else
+			echo mv "${file}" "${base}.${realRes}p.${ext}"
+		fi
+	done
+}
+
+if [ $# = 0 ]; then
+	echo "# no args, using all"
+	fix *
+else
+	fix "${@}"
+fi
