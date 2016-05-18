@@ -14,17 +14,26 @@ out=""
 # how many files have been completed
 completedCount=0
 
+# how many bytes have been processed
+completedSize=0
+
 # how many files have been processed in this run
 processedCount=0
+
+# how many bytes have been processed in this run
+processedSize=0
 
 # total number of files we are working on
 total=$#
 
+# total number of bytes left to process
+totalSize=0
+
 # start time in Julian seconds
 start=$(date +%s)
 
-# make the mkv directory or die trying
-mkdir -p mkv || exit 1
+# name of script
+prog=$(basename "$0")
 
 # length of date string
 tmp=$(date +"%H:%M:%S")
@@ -37,10 +46,10 @@ finish() {
 
 cleanup() {
 	if [ "${out}xx" != xx ]; then
-		echo "User interrupt; deleting $out"
+		echo "### ${prog}: User interrupt; deleting $out"
 		rm "${out}"
 	else
-		echo "User interrupt"
+		echo "### ${prog}: User interrupt"
 	fi
 	finish
 	exit 1
@@ -48,6 +57,7 @@ cleanup() {
 
 # report printed as each files starts processing
 report() {
+	mp4="$1"
 	now=$(date +%s)
 	delta=$((now-start));
 	etaMessagePrefix="ETA "
@@ -56,11 +66,19 @@ report() {
 	etaMessage=$(printf "%-${etaMessageLength}s" "no ETA")
 	averageMin="00"
 	averageSec="00"
-	if [ ${completedCount} -gt 0 ]; then
+
+	
+	if [ ${processedCount} -gt 0 ]; then
+		# size-based guess of remaining time (using factor of 1000 since bash has no floating point)
+		K=100000000000
+		processingRateK=$((delta*K / processedSize))
+		remainingSizeInBytes=$((totalSize - completedSize))
+		remainingTimeInSeconds=$(( (processingRateK * remainingSizeInBytes) / K ))
 		average=$((delta/completedCount))
 		averageMin=$(printf "%02.2d" $((average/60)) )
 		averageSec=$(printf "%02.2d" $((average%60)) )
-		eta="$((now+average*remainingCount))"
+		# eta="$((now+average*remainingCount))"
+		eta=$((now+remainingTimeInSeconds))
 		if [ $remainingCount = 0 ]; then
 			etaMessage=$(printf "%-${etaMessageLength}s" "ETA: now")
 		else
@@ -72,21 +90,88 @@ report() {
 	echo "`date` -- #${displayCount} / $total; ${averageMin}m${averageSec}s average, ${etaMessage} --- processing ${mp4}"
 }
 
+# no arguments = process all mp4 files in $PWD
+extlist=(mp4)
+found=1
+if [ $# = 0 ]; then
+	found=0
+	for ext in ${extlist[@]}; do
+		set *.$ext
+		if [ "x$*" != 'x*.'"$ext" ]; then
+			found=1
+			break
+		fi
+	done
+fi
+if [ $found = 0 ]; then
+	echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
+	exit 2
+fi
+
 trap 'cleanup' INT
 
-# iterate over all arguments
-for mp4; do
-	out=${mkvdir}/"${mp4%.*}".mkv
-	if [ -r "${out}" ]; then
+if [ ! -d "${mkvdir}" ]; then
+	echo "$0: directory ${mkvdir} missing. Creating it."
+	mkdir -p "${mkvdir}"
+fi
+
+calculateSizes() {
+	# iterate over all arguments and calculate remaining size
+	completedCount=0
+	completedSize=0
+	totalSize=0
+	total=$#
+	for mp4; do
+		out=${mkvdir}/"${mp4%.*}".mkv
+		mp4Size=$(stat -f %z "${mp4}")
+		if [ -r "${out}" ]; then
+			((completedCount++))
+			((completedSize += mp4Size))
+			echo "# ${out} already exists - skipping"
+			continue
+		fi
+		((totalSize += mp4Size))
+	done
+}
+
+convert() {
+	# iterate over all arguments and convert
+	processedCount=0
+	processedSize=0
+	start=$(date +%s)
+	mkdir -p mkv || exit 1
+	for mp4; do
+		out=${mkvdir}/"${mp4%.*}".mkv
+		if [ -r "${out}" ]; then
+			continue
+		fi
+		report "${mp4}"
+		# use `nice` to be .. nice
+		nice ffmpeg -i "${mp4}" "${out}" > /dev/null 2>&1
+		# ensure timestamp is the same
+		touch -r "${mp4}" "${out}"
 		((completedCount++))
-		echo "# ${out} already exists - skipping"
-		continue
-	fi
-	report
-	# use `nice` to be .. nice
-	nice ffmpeg -i "${mp4}" "${out}" > /dev/null 2>&1
-	((completedCount++))
-	((processedCount++))
-done
+		size=$(stat -f %z "${mp4}")
+		((completedSize += size))
+		((processedSize += size))
+		((processedCount++))
+	done
+}
+
+# check the first argument
+if [ -d "${1}" ]; then
+	for dir; do
+		echo "### ${prog}: processing directory $dir"
+		cd "$dir"
+		calculateSizes *.[Mm][Pp]4
+		convert *.[Mm][Pp]4
+		echo "### ${prog}: finished directory $dir"
+		echo ""
+	done
+else
+	setup
+	calculateSizes "$@"
+	convert "$@"
+fi
 
 finish
