@@ -15,16 +15,28 @@ script_pid=$$
 true=0
 false=1
 
+outputDir=""
+
 #
 # had to read http://wiki.bash-hackers.org/howto/getopts_tutorial to figure out "getopts"!
 #
-while getopts fhv opt; do
+while getopts fhvd: opt; do
 	case $opt in
+		d)	outputDir="${OPTARG}/"
+			if ! mkdir -p "${outputDir}"; then
+				echo "Cannot create output dir ${outputDir}"
+				exit 1;
+			fi ;;
+
 		f) force=1 ;;
 		v) verbose=1 ;;
 
 		h)	echo "Usage: $prog # converts all *.mkv files"
 			echo "       $prog foo.mkv bar.mkv # only convert specified files"
+			echo "       $prog [-f] [-h] [-v]"
+			echo "           -f -- force conversion, even if aac already exists (adds another track)"
+			echo "           -h -- print this help"
+			echo "           -v -- be verbose"
 			exit 0
 			;;
 	esac
@@ -166,7 +178,7 @@ add_aac_to_file() {
 	aacFile="${originalFile%.*}".aac
 
 	#`mkvFile` is the original file with the aac track added to it
-	mkvFile="${base}.mkv"
+	mkvFile="${outputDir}${base}.mkv"
 
 	# create `aacFile` by converting the ac3 track from `originalFile`
 	e ffmpeg -i "${originalFile}" $ff_aac_opts "${aacFile}"
@@ -249,6 +261,9 @@ convert_if_needed() {
 			fi
 		else
 			echo "does not need converting: $file"
+			if [ "x${outputDir}" != "x" ]; then
+				mv "$file" "${outputDir}" || echo Cannot move "$file" to "${outputDir}"
+			fi
 		fi
 	fi
 }
