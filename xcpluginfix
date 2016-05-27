@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+# iterate over all installed versions of Xcode (betas, specific versions etc.)
+foreach xcode (/Applications/Xcode*.app)
+	# read the compatability UUID from the Xcode
+	uuid=$(defaults read ${xcode}/Contents/Info DVTPlugInCompatibilityUUID)
+	# iterate over user-installed Xcode plugins and add Xcode's compatability UUID
+	# to the plugin's Info.plist
+	# NOTE: uses zsh's '**' syntax to find all files under a directory
+	foreach info (~/Library/Application\ Support/Developer/Shared/Xcode/Plug-ins/**/Info.plist)
+		defaults write "${info}" DVTPlugInCompatibilityUUIDs -array-add ${uuid}
+	end
+end
