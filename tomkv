@@ -44,6 +44,31 @@ finish() {
 	echo "`date` --- processed ${processedCount} files."
 }
 
+setup() {
+	# no arguments = process all mp4 files in $PWD
+	extlist=(mp4)
+	found=1
+	if [ $# = 0 ]; then
+		found=0
+		for ext in ${extlist[@]}; do
+			set *.$ext
+			if [ "x$*" != 'x*.'"$ext" ]; then
+				found=1
+				break
+			fi
+		done
+	fi
+	if [ $found = 0 ]; then
+		echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
+		exit 2
+	fi
+
+	if [ ! -d "${mkvdir}" ]; then
+		echo "$0: directory ${mkvdir} missing. Creating it."
+		mkdir -p "${mkvdir}"
+	fi
+}
+
 cleanup() {
 	if [ "${out}xx" != xx ]; then
 		echo "### ${prog}: User interrupt; deleting $out"
@@ -90,31 +115,6 @@ report() {
 	echo "`date` -- #${displayCount} / $total; ${averageMin}m${averageSec}s average, ${etaMessage} --- processing ${mp4}"
 }
 
-# no arguments = process all mp4 files in $PWD
-extlist=(mp4)
-found=1
-if [ $# = 0 ]; then
-	found=0
-	for ext in ${extlist[@]}; do
-		set *.$ext
-		if [ "x$*" != 'x*.'"$ext" ]; then
-			found=1
-			break
-		fi
-	done
-fi
-if [ $found = 0 ]; then
-	echo "${prog}: No files specified and no files found with extension: ${extlist[@]}"
-	exit 2
-fi
-
-trap 'cleanup' INT
-
-if [ ! -d "${mkvdir}" ]; then
-	echo "$0: directory ${mkvdir} missing. Creating it."
-	mkdir -p "${mkvdir}"
-fi
-
 calculateSizes() {
 	# iterate over all arguments and calculate remaining size
 	completedCount=0
@@ -139,37 +139,46 @@ convert() {
 	processedCount=0
 	processedSize=0
 	start=$(date +%s)
-	mkdir -p mkv || exit 1
-	for mp4; do
-		out=${mkvdir}/"${mp4%.*}".mkv
+	mkdir -p "${mkvdir}" || exit 1
+	for videoFile; do
+		out=${mkvdir}/"${videoFile%.*}".mkv
 		if [ -r "${out}" ]; then
 			continue
 		fi
-		report "${mp4}"
+		report "${videoFile}"
 		# use `nice` to be .. nice
-		nice ffmpeg -i "${mp4}" "${out}" > /dev/null 2>&1
+		nice ffmpeg -i "${videoFile}" "${out}" > /dev/null 2>&1
 		# ensure timestamp is the same
-		touch -r "${mp4}" "${out}"
+		touch -r "${videoFile}" "${out}"
 		((completedCount++))
-		size=$(stat -f %z "${mp4}")
+		size=$(stat -f %z "${videoFile}")
 		((completedSize += size))
 		((processedSize += size))
 		((processedCount++))
 	done
 }
 
+# ^C cleans up and exits
+trap 'cleanup' INT
+
 # check the first argument
-if [ -d "${1}" ]; then
+if [ $# -gt 0 -a -d "${1}" ]; then
 	for dir; do
 		echo "### ${prog}: processing directory $dir"
 		cd "$dir"
-		calculateSizes *.[Mm][Pp]4
-		convert *.[Mm][Pp]4
-		echo "### ${prog}: finished directory $dir"
+		mp4s=(*.[Mm][Pp]4)
+		if [ "x${mp4s}x" = "x*.[Mm][Pp]4x" ]; then
+			echo "### ${prog}: no mp4 files"
+		else
+			calculateSizes *.[Mm][Pp]4
+			convert *.[Mm][Pp]4
+			echo "### ${prog}: finished directory $dir"
+		fi
 		echo ""
+		cd ..
 	done
 else
-	setup
+	setup "$@"
 	calculateSizes "$@"
 	convert "$@"
 fi
