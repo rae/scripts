@@ -46,7 +46,7 @@ finish() {
 
 setup() {
 	# no arguments = process all mp4 files in $PWD
-	extlist=(mp4)
+	extlist=(mp4 mov)
 	found=1
 	if [ $# = 0 ]; then
 		found=0
@@ -166,12 +166,19 @@ if [ $# -gt 0 -a -d "${1}" ]; then
 	for dir; do
 		echo "### ${prog}: processing directory $dir"
 		cd "$dir"
-		mp4s=(*.[Mm][Pp]4)
-		if [ "x${mp4s}x" = "x*.[Mm][Pp]4x" ]; then
-			echo "### ${prog}: no mp4 files"
+		vlist=()
+		for video in *.[Mm][Pp]4 *.[Mm][Oo][Vv]; do
+			if [ "x${video}" = = "x*.[Mm][Pp]4x" -o "x${video}x" = "x*.[Mm][Oo][Vv]x" ]; then
+				continue;
+			fi
+			vlist=("${vlist[@]}" "$video")
+		done
+		if [ ${#vlist[@]} = 0 ]; then 
+			echo "### ${prog}: no video files"
 		else
-			calculateSizes *.[Mm][Pp]4
-			convert *.[Mm][Pp]4
+			echo "### converting ${#vlist[@]} files."
+			calculateSizes "${vlist[@]}"
+			convert "${vlist[@]}"
 			echo "### ${prog}: finished directory $dir"
 		fi
 		echo ""
