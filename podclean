@@ -1,0 +1,7 @@
+#!/bin/sh
+d="$PWD"
+root="$(git rev-parse --show-toplevel)"
+[[ "$root" != "$d" ]] && cd "$root"
+set -x
+rm -rf Pods Podfile.lock *.xcworkspace
+pod install
