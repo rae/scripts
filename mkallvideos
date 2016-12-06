@@ -3,6 +3,7 @@ all="+all-videos"
 for ext in mov avi webm mp4 m4v mkv; do
 	find [a-z0-9]* -type f -name '*.'${ext} -print0 | while read -d '' v; do
 		dest="${all}/$v"
+		[ -r "$dest" ] && continue
 		dest_dir="${all}/${v%/*}"
 		[ -d "$dest_dir" ] || mkdir -p "$dest_dir"
 		ln "$v" "${dest}"
