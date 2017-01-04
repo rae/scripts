@@ -1,12 +1,21 @@
 #!/bin/sh
 all="+all-videos"
+mkdir -p "${all}"
 for ext in mov avi webm mp4 m4v mkv; do
-	find [a-z0-9]* -type f -name '*.'${ext} -print0 | while read -d '' v; do
+	find [A-Za-z0-9]* -type f -name '*.'${ext} -print0 | while read -d '' v; do
 		dest="${all}/$v"
 		[ -r "$dest" ] && continue
-		dest_dir="${all}/${v%/*}"
-		[ -d "$dest_dir" ] || mkdir -p "$dest_dir"
-		ln "$v" "${dest}"
-		echo "$v"
+		partial_path="${v%/*}"
+		if [ "x${partial_path}" != "x${v}" ]; then
+			dest_dir="${all}/${partial_path}"
+			echo "dest_dir is ${dest_dir}"
+			[ -d "$dest_dir" ] || mkdir -p "$dest_dir"
+		fi
+		if [ -r "${dest}" ]; then
+			echo > /dev/null
+		else
+			ln "$v" "${dest}"
+			echo ln "$v" "${dest}"
+		fi
 	done
 done
