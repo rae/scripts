@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# files up to 5am are considered part of the previous day
+TIME_OFFSET_HOURS=5
+TIME_OFFSET_SECONDS=$((TIME_OFFSET_HOURS * 3600))
+
+for file; do
+	stats=($(stat -r "$file"))
+	echo "$file - stats# is ${#stats}, stats is $stats"
+	modTime=${stats[9]}
+	echo "$file - $modTime = $(date -r $modTime)"
+	dirName=$(date -r $((modTime - TIME_OFFSET_SECONDS)) +%Y-%m-%d.%a)
+	mkdir -p $dirName
+	mv "$file" $dirName
+done
