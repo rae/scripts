@@ -1,0 +1,14 @@
+#!/bin/bash
+c=0
+e=""
+echo ""
+echo -n '	'
+while (( c < 128 )); do
+	printf "${e}[${c}m %03d ${e}[m " $c
+	((c++))
+	if (( c % 8 == 0 )); then
+		echo ''
+		echo -n '	'
+	fi
+done
+echo ''
