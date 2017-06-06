@@ -1,0 +1,127 @@
+#!/usr/bin/perl -s
+#
+# right-click on streaming video, select "Copy video address", and feed it to this script
+#
+# Example URL:
+#	2016:	http://devstreaming.apple.com/videos/wwdc/2015/106z3yjwpfymnauri96m/106/hls_vod_mvp.m3u8
+#	2017:	http://devstreaming.apple.com/videos/wwdc/2016/102w0bsn0ge83qfv7za/102/hls_vod_mvp.m3u8
+#
+# Not sure if this works outside WWDC.
+#
+# You need to be logged in to http://developer.apple.com
+#
+# hacked together by Reid / @clith - rae@tnir.org
+#
+my $base;
+my $m3u;
+my $ts;
+my $ffmpegCmd = "ffmpeg -i 'concat:%s' -c copy -bsf:a aac_adtstoasc '%s'";
+# my $curlCmd = "curl --limit-rate 1M -s";
+my $curlCmd = "curl -s";
+my $vidSize="1920";
+my $hdExt = "1080p";
+my $maxDownloadRetryCount = 4;
+my $dateString;
+
+local $SIG{HUP} = sub {
+	chomp($dateString = `date`);
+	print "\n\n[$dateString] Caught user ^C, deleting ${ts} and exiting..\n";
+	unlink($ts);
+	exit(0);
+};
+
+if($s) {
+	$vidSize="1280";
+	$hdExt = "720p";
+}
+foreach (@ARGV) {
+	my @urlList;
+	unless(m#^(.*)/(\d+)/([\w.]+)$#) {
+		warn "Can't read url $_\n";
+		next;
+	}
+	$base = "$1/$2";
+	my $session = $2;
+	$m3u = $3;
+	my @videoList = split ' ', `$curlCmd "$base/$m3u"`;
+	my $vidbase = "$base/${vidSize}";
+	my $vidm3u = "$vidbase/${vidSize}.m3u8";
+	my @tsfiles = split ' ', `$curlCmd "$vidm3u"|grep -v '^#'`;
+	my $lastTs = $tsfiles[$#tsfiles -1];
+	my $session = "$2";
+
+	# skip already-compiled session videos
+	my @allFiles=<*>;
+	my @sessionVideoList = grep(/$session./, @allFiles);
+	if(@sessionVideoList) {
+		print "Skipping \"@sessionVideoList\"\n";
+		next;
+	} else {
+		print "Downloading \"$session\"\n";
+	}
+
+	mkdir $session unless -d $session;
+	chdir $session || warn "was not able to chdir: $!\n";
+	chomp(my $date = `date`);
+	print "\n# Starting $session [$tsfiles[0] - ${lastTs}] on ${date}\n";
+	print "$_\n";
+
+	my $stopped = 0;
+	my $complete = 0;
+	my $column = 1;
+	foreach $ts (@tsfiles) {
+		my $tsurl = "$vidbase/$ts";
+		my $shouldSkip=0;
+		if(-r $ts) {
+			print " [$ts] ";
+			$shouldSkip=1;
+		} else {
+			print "  $ts  ";
+		}
+		$column++;
+		if($column > 10) {
+			$column=1;
+			print "\n";
+		}
+		next if $shouldSkip;
+		for (my $downloadAttemptCount = 1; $downloadAttemptCount < $maxDownloadRetryCount; $downloadAttemptCount++) {
+			my $systemValue = system("$curlCmd -O \"$tsurl\"");
+			if($systemValue) {
+				my $sig = $? & 127;
+				chomp($dateString = `date`);
+				printf("\n\n[$dateString] Error: failed (signal %d) to download $ts (try ${downloadAttemptCount} of $maxDownloadRetryCount) [$systemValue]\n", $sig);
+				print "  Exited with value ", $? >> 8, "\n";
+				print "  $ts  \n";
+				$columns=2;
+				if($sig == 2) {
+					print "^C\n";
+					print "\n[$dateString] Cleaning up and exiting; deleting $ts..\n";
+					unlink $ts;
+					exit(0);
+				}
+			} else {
+				$complete = 1;
+				last;
+			}
+		}
+	}
+	if($complete) {
+		my $cmd = sprintf($ffmpegCmd, join("|", @tsfiles), "../${session}..${hdExt}.mp4");
+		my $printCmd = sprintf($ffmpegCmd, "<$#tsfiles files>", "../${session}..${hdExt}.mp4");
+		chomp($dateString = `date`);
+		print "\n\n[$dateString] Creating mp4\n[$dateString] $printCmd\n\n";
+		if(system($cmd)) {
+			warn "Creation of $session.mp4 failed: $!\n";
+		} else {
+			chomp($dateString = `date`);
+			print "\n[$dateString] Creation of $session.mp4 complete\n\n";
+		}
+	} else {
+		chomp($dateString = `date`);
+		print "\n\n[$dateString] Error: failed to download $ts (try #${downloadAttemptCount} of $maxDownloadRetryCount)\n";
+		print "[$dateString] Halting all downloads.\n";
+		unlink $ts if $ts ne "";
+		last;
+	}
+	chdir "..";
+}
