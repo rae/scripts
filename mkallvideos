@@ -1,21 +1,32 @@
 #!/bin/sh
+# set -x
 all="+all-videos"
+rm -rf "${all}"
 mkdir -p "${all}"
-for ext in mov avi webm mp4 m4v mkv; do
-	find [A-Za-z0-9]* -type f -name '*.'${ext} -print0 | while read -d '' v; do
-		dest="${all}/$v"
-		[ -r "$dest" ] && continue
-		partial_path="${v%/*}"
-		if [ "x${partial_path}" != "x${v}" ]; then
-			dest_dir="${all}/${partial_path}"
-			echo "dest_dir is ${dest_dir}"
-			[ -d "$dest_dir" ] || mkdir -p "$dest_dir"
+# do mov first
+exts="( -iname *.mov"
+for ext in avi webm mp4 m4v mkv 3gp wmv flv vob ogv iso qt rm asf mpg mpeg mpv; do
+	exts="${exts} -o -iname *.${ext}"
+done
+exts="${exts} )"
+
+# echo "Command is: find . -type f ${exts} -print0"
+find . -type f ${exts} -print0 | while read -d '' v; do
+	# echo "## $v"
+	dest="${all}/$v"
+	if [ -r "$dest" ]; then
+		# echo "## - already there"
+		continue
+	fi
+	partial_path="${v%/*}"
+	if [ "x${partial_path}" != "x${v}" ]; then
+		dest_dir="${all}/${partial_path}"
+		if [ ! -d "$dest_dir" ]; then
+			# echo "### creating ${all}/${partial_path}"
+			mkdir -p "$dest_dir"
 		fi
-		if [ -r "${dest}" ]; then
-			echo > /dev/null
-		else
-			ln "$v" "${dest}"
-			echo ln "$v" "${dest}"
-		fi
-	done
+		echo "${partial_path}"
+	fi
+	ln "$v" "${dest}"
+	echo "    ${v##*/}"
 done
