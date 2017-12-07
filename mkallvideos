@@ -1,32 +1,52 @@
-#!/bin/sh
-# set -x
-all="+all-videos"
-rm -rf "${all}"
-mkdir -p "${all}"
-# do mov first
-exts="( -iname *.mov"
-for ext in avi webm mp4 m4v mkv 3gp wmv flv vob ogv iso qt rm asf mpg mpeg mpv; do
-	exts="${exts} -o -iname *.${ext}"
-done
-exts="${exts} )"
+#!/usr/bin/env perl
+use File::Path qw(make_path remove_tree);
+use File::Find;
+use File::Basename;
 
-# echo "Command is: find . -type f ${exts} -print0"
-find . -type f ${exts} -print0 | while read -d '' v; do
-	# echo "## $v"
-	dest="${all}/$v"
-	if [ -r "$dest" ]; then
-		# echo "## - already there"
-		continue
-	fi
-	partial_path="${v%/*}"
-	if [ "x${partial_path}" != "x${v}" ]; then
-		dest_dir="${all}/${partial_path}"
-		if [ ! -d "$dest_dir" ]; then
-			# echo "### creating ${all}/${partial_path}"
-			mkdir -p "$dest_dir"
-		fi
-		echo "${partial_path}"
-	fi
-	ln "$v" "${dest}"
-	echo "    ${v##*/}"
-done
+my @videoExtensions = qw(mov avi webm mp4 m4v mkv 3gp wmv flv vob ogv iso qt rm asf mpg mpeg mpv);
+# prepend "."
+for(@videoExtensions) {
+	s/^/./;
+}
+my $all="+all-videos";
+chomp(my $rootDir = `pwd`);
+my $rmCount = remove_tree($all);
+@dirs = make_path($all);
+if(scalar @dirs == 0) {
+	warn "Unable to create $all: $?\n";
+	exit(1);
+}
+
+find(\&filterVideos, '.');
+
+sub filterVideos {
+	if($File::Find::name eq $all) {
+		$File::Find::prune=1;
+		return;
+	}
+	my ($ignored1, $ignored2, $ext) = fileparse($File::Find::name, @videoExtensions);
+	return unless length($ext);
+	return if(! -r || -d);
+	# print "# 1 $File::Find::name\n";
+	my $path = $File::Find::dir;
+	$path =~ s#/$##;
+	$path =~ s#^\.\/##;
+	my $dest = "$all/$path/$_";
+	my $destDir = "$all/$path";
+	# print "# \--> $dest\n";
+	if(-r $dest) {
+		# print "## exists: $dest (from $path)\n";
+		return;
+	}
+	# print "# 2 $File::Find::name\n";
+	unless($path eq "" || $path eq "." || -d "$rootDir/$destDir") {
+		unless(make_path("$rootDir/$destDir") > 0) {
+			# failed to create directory
+			# print "exists!" if -d "$rootDir/$destDir";
+			return;
+		}
+		print "# $path\n";
+	}
+	# print "# 3 $File::Find::name\n";
+	link($_, "$rootDir/$destDir/$_") || warn "Unable to link $_: $!\n";
+}
