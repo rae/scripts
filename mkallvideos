@@ -4,6 +4,10 @@ use File::Find;
 use File::Basename;
 
 my @videoExtensions = qw(mov avi webm mp4 m4v mkv 3gp wmv flv vob ogv iso qt rm asf mpg mpeg mpv);
+my @videoExtensionsUC = @videoExtensions;
+tr/[a-z]/[A-Z]/ foreach (@videoExtensionsUC);
+push(@videoExtensions, @videoExtensionsUC);
+
 # prepend "."
 for(@videoExtensions) {
 	s/^/./;
