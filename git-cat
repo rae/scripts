@@ -1,13 +1,18 @@
 #!/bin/bash
 
+# For debugging
+#set -x
+
 prog="${0##*/}"
 
 if [ $# -lt 2 ]; then
-	echo "Usage: $prog branch file [file..]"
-	exit 1
+	branch=HEAD
+	# echo "Usage: $prog branch file [file..]"
+	# exit 1
+else
+	branch="$1"
 fi
 
-branch="$1"
 root="$(git rev-parse --show-toplevel)"
 # check to see if we should stick "origin/" in front
 if [[ ! -r "${root}/.git/refs/heads/${branch}" ]]; then
@@ -17,8 +22,10 @@ if [[ ! -r "${root}/.git/refs/heads/${branch}" ]]; then
 		branch="${branches}"
 		echo "${prog}: using branch $branch"
 	elif [[ ${#branches[@]} == 0 ]]; then
-		echo "${prog}: Cannot find branch locally or on any server: $branch"
-		exit 1
+		if [[ $(git cat-file -t ${branch} 2>/dev/null) != "commit" ]]; then
+			echo "${prog}: Cannot find branch or commit locally or on any server: $branch"
+			exit 1
+		fi
 	else
 		echo "${prog}: branch name is ambiguous: ${branch}"
 		for br in "${branches[@]}"; do
@@ -31,7 +38,7 @@ fi
 shift
 
 for file; do
-	if [[ "${file}" != ./* ]]; then
+	if [[ "${file}" != /* && "${file}" != ./* ]]; then
 		file="./${file}"
 	fi
 	echo git show "${branch}":"${file}"
