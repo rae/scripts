@@ -1,0 +1,16 @@
+#!/usr/bin/perl -w
+# renames screenshots on the desktop that match "Screen Shot 2020-02-02 at 12.34.55.ext" to
+# 2020-02-02.12.34.55.ext
+#
+chdir("$ENV{HOME}/Desktop");
+
+for my $ss (<"Screen Shot*">) {
+	if($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d).([a-z][a-z][a-z])/) {
+		my $newname="${1}.${2}${3}.${4}";
+		if(-e $newname) {
+			warn "$0: \"$newname\" already exists. skipping $ss\n";
+			next;
+		}
+		rename $ss, $newname;
+	}
+}
