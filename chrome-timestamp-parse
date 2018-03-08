@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+import datetime
+import sys
+import re
+
+def date_from_webkit(webkit_timestamp):
+    epoch_start = datetime.datetime(1601,1,1)
+    delta = datetime.timedelta(microseconds=int(webkit_timestamp))
+    return epoch_start + delta
+
+for line in sys.stdin:
+    match = re.search(r'"(\d\d\d\d\d\d\d+)"', line)
+    if match:
+        timestamp=match.group(1)
+        date=date_from_webkit(timestamp)
+        out=line.replace(timestamp, "%d-%02d-%02d %02d%02d.%02d" % (date.year, date.month, date.day, date.hour, date.minute, date.second))
+        print out,
+    else:
+        print line,
