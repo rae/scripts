@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+"""
+   Script to scale the time in subtitle files in the .srt format. Script
+   takes in the filename and the scale to expand or contract the subtitles.
+   It then writes the new subtitles to the same file. Alternately you can
+   specify the filename as '-' and then the script will read input from
+   stdin and write output to stdout.
+
+"""
+
+__version__   = '1.0'
+__author__    = 'Reid Ellis'
+__date__      = 'Tue Aug 14, 2018'
+__url__       = 'http://einaregilsson.com/2008/03/20/subtitle-fixer/' 
+
+import sys, re, datetime
+
+MILLISECOND = 1
+SECOND = 1000 * MILLISECOND
+MINUTE = 60 * SECOND
+HOUR = 60 * MINUTE
+
+def scale_time(time, scale):
+    """ Takes in list with [hour, minute, second, millisecond] and returns
+        it with scale applied
+    """
+    ms = sum(map(int.__mul__,  time, [HOUR, MINUTE, SECOND, MILLISECOND]))
+    ms *= scale
+    return [ms / HOUR, ms % HOUR / MINUTE, ms % MINUTE / SECOND, ms % SECOND]
+
+def fix_subtitles(lines, scale, output):
+    """ Takes in list (lines) with all the lines from the subtitle file, stretches
+        by scale and writes the file to output.
+    """
+    for line in lines:
+        pattern = r'(\d\d):(\d\d):(\d\d),(\d\d\d) --> (\d\d):(\d\d):(\d\d),(\d\d\d)'
+        match = re.match(pattern, line)
+        if match:
+            nrs = [int(nr) for nr in match.groups(0)]
+            start = scale_time(nrs[:4], scale)
+            end = scale_time(nrs[4:8], scale)
+            output.write('%02d:%02d:%02d,%03d' % tuple(start))
+            output.write(' --> ')
+            output.write('%02d:%02d:%02d,%03d\n' % tuple(end))
+        else:
+            output.write(line)
+
+def print_header():
+    print 'Subtitle Fixer v%s' % __version__
+    print 'Author: %s' % __author__
+    print __url__
+    print ''
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print_header()
+        print 'Usage: srtscale <filename> <scale-from-0.0-to-whatever>'
+        print 'Use - for filename to read from stdin and print to stdout'
+        sys.exit(1)
+
+    scale = float(sys.argv[2])
+    file = None
+    if sys.argv[1] == '-': #Read from stdin and print to stdout
+        fix_subtitles(sys.stdin.readlines(), scale, sys.stdout)
+    else: #read from file and write to same file
+        file = open(sys.argv[1], 'r')
+        lines = file.readlines()
+        file.close()
+        file = open(sys.argv[1], 'w')
+        fix_subtitles(lines, scale, file)
+        file.close()
+        print 'Finished scaling %s by a factor or %s' % (sys.argv[1], scale)
