@@ -4,12 +4,60 @@
 TIME_OFFSET_HOURS=5
 TIME_OFFSET_SECONDS=$((TIME_OFFSET_HOURS * 3600))
 
+format="%Y-%m-%d.%a"
+dryRun=0
+
+while [[ $1 == -* ]]; do
+	if [ "$1" = "-m" ]; then
+		format="%Y-%m.week-%U"
+		shift
+		continue
+	fi
+
+	if [ "$1" = "-f" ]; then
+		format="$2";
+		shift
+		shift
+		continue
+	fi
+
+	if [ "$1" = "-h" ]; then
+		cat <<EOF
+
+	picd [-m] [-f timeFormat] [-h] file [file..]
+		-m			save in weekly+monthly folders (%Y-%m.week-$U)
+		-f fmt		use time format fmt
+		-h			print this help
+		-n			dry run - don't actually do anything
+
+EOF
+		exit 0
+	fi
+	
+	if [ "$1" = "-n" ]; then
+		dryRun=1
+		shift
+		continue
+	fi
+
+	echo "${0}: Unrecognized flag: $1"
+	exit 1
+done
+
+if [[ "x$format" = "x"  || "x$format" = "x."  || "x$format" = "x.." ]]; then
+	echo "Empty or illegal format '""$format""'. Stopping."
+	exit 1
+fi
+
 for file; do
 	stats=($(stat -r "$file"))
-	echo "$file - stats# is ${#stats}, stats is $stats"
+	#echo "$file - stats# is ${#stats}, stats is $stats"
 	modTime=${stats[9]}
-	echo "$file - $modTime = $(date -r $modTime)"
-	dirName=$(date -r $((modTime - TIME_OFFSET_SECONDS)) +%Y-%m-%d.%a)
-	mkdir -p $dirName
-	mv "$file" $dirName
+	#echo "$file - $modTime = $(date -r $modTime)"
+	dirName=$(date -r $((modTime - TIME_OFFSET_SECONDS)) +"${format}")
+	echo mv "$file" $dirName
+	if [[ $dryRun = 0 ]]; then
+		mkdir -p $dirName
+		mv -i "$file" $dirName
+	fi
 done
