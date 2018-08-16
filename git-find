@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# debug
+# set -x
+
+# tty width
+width=$(tput cols)
+
+# pager to pipe the output through
+GIT_PAGER=${GIT_PAGER-less}
+
+# format for git log output
+pretty="%Cred%h%Creset < %p%C(magenta)%d%Creset (%Cgreen%ad%Creset) %C(bold blue) %an <%ae>%Creset%n%B"
+
+# where to break commits in the pager
+git_log_pattern="\*[ |]*[0-9a-f][0-9a-f][0-9a-f]* < .*"
+
+# automatically wrap all arguments in wildcards
+args=()
+for arg in "${@}"; do
+	if [[ ${arg} == */* ]]; then
+		# do nothing, there is a slash
+		date > /dev/null
+	else
+		# assume to look everywhere
+		arg="**/${arg}"
+	fi
+	if [[ $arg =~ *\* ]]; then
+		date > /dev/null
+	else
+		arg="${arg}*"
+	fi
+
+	echo "########################################################################"
+	echo "#"
+	echo "# $(basename ${0}): searching for $arg"
+	echo "#"
+	echo "########################################################################"
+	echo ""
+
+	git log \
+		--color \
+		--graph \
+		--pretty=format:"${pretty}" \
+		--abbrev-commit \
+		--date=relative \
+		--stat=$(($width-10)),$(($width-50)) \
+		--all \
+		-- \
+		"${arg}"
+	echo ""
+	echo ""
+done | "${GIT_PAGER}" --pattern="${git_log_pattern}"
