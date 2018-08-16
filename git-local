@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+open(BRANCHES, "git branch |") || die "Can't list branches: $!\n";
+my %branches=();
+while(<BRANCHES>) {
+	chomp;
+	my @a = split ' ';
+	my $branch = shift(@a);
+	$branch  = shift(@a) if $branch eq "*";
+	$branches{$branch} = 1;
+}
+close(BRANCHES);
+# print join("\n", sort keys %branches), "\n";
+
+my %localBranches = %branches;
+open(REMOTEBRANCHES, "git branch -r |") || die "Can't list branches: $!\n";
+while(<REMOTEBRANCHES>) {
+	chomp;
+	s#origin/##;
+	next if /HEAD/;
+	my @a = split ' ';
+	my $branch = shift(@a);
+	$branch  = shift(@a) if $branch eq "*";
+	delete $localBranches{$branch};
+	# push @remoteBranches, $branch;
+}
+close(REMOTEBRANCHES);
+# print "\n---\n\n";
+print join("\n", sort keys %localBranches), "\n";
