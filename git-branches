@@ -1,0 +1,37 @@
+#!/bin/bash
+#set -x
+debug=false
+authorNamesOffset=28
+authorNamesWidth=25
+((endOfAuthorNames = authorNamesOffset + authorNamesWidth + 3))
+
+sortByBranch() {
+	sort -k 1.${endOfAuthorNames}
+}
+
+localBranches() {
+	$debug && echo "## Local branches:" >&2
+	$debug && git branch | sed 's/^..//' >&2
+	git branch | sed 's/^..//' | sortByBranch
+}
+
+remoteBranches() {
+	$debug && echo "## Local branches:" >&2
+	$debug && git branch -r | grep -v HEAD >&2
+	git branch -r | grep -v HEAD | sortByBranch
+}
+
+displayBranch() {
+	git show --format="%ai  by %<(${authorNamesWidth})%an" "$1" \
+	| head -1 \
+	| expand -t 8 2>/dev/null
+}
+
+
+for branch in $(remoteBranches) "" $(localBranches); do
+	if [[ $branch == "" ]]; then
+		echo ""
+	else
+		echo "$(displayBranch $branch) ${branch}"
+	fi
+done
