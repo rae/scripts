@@ -1,24 +1,62 @@
 #!/bin/bash
-#set -x
+# set -x
 debug=false
-authorNamesOffset=28
+authorNamesOffset=30
 authorNamesWidth=25
-((endOfAuthorNames = authorNamesOffset + authorNamesWidth + 3))
+((endOfAuthorNames = authorNamesOffset + authorNamesWidth))
+
+args=`getopt abdh $*`
+if [ $? != 0 ]; then
+	echo "${0} usage: [-a] [-b] [-h]"
+	exit 2
+fi
+set -- $args
+
+sort=sortByBranch
+
+for i; do
+	case "$i" in
+	-a)
+		# sort by author
+		sort=sortByAuthor
+		shift;;
+	-b)
+		# sort by branch name
+		sort=sortByBranch
+		shift;;
+	-d)
+		# turn on debugging
+		debug=true
+		shift;;
+	--)
+		shift
+		break;;
+	esac
+done
 
 sortByBranch() {
-	sort -k 1.${endOfAuthorNames}
+	cat
+}
+
+sortByAuthor() {
+	if $debug; then
+		echo "## sorting by author"
+		echo sort -k 1.${authorNamesOffset}
+	fi >&2
+	sort -k 4
+	# sort -k 1.${authorNamesOffset}
 }
 
 localBranches() {
 	$debug && echo "## Local branches:" >&2
 	$debug && git branch | sed 's/^..//' >&2
-	git branch | sed 's/^..//' | sortByBranch
+	git branch | sed 's/^..//'
 }
 
 remoteBranches() {
 	$debug && echo "## Local branches:" >&2
 	$debug && git branch -r | grep -v HEAD >&2
-	git branch -r | grep -v HEAD | sortByBranch
+	git branch -r | grep -v HEAD
 }
 
 displayBranch() {
@@ -27,11 +65,10 @@ displayBranch() {
 	| expand -t 8 2>/dev/null
 }
 
-
 for branch in $(remoteBranches) "" $(localBranches); do
 	if [[ $branch == "" ]]; then
 		echo ""
 	else
 		echo "$(displayBranch $branch) ${branch}"
 	fi
-done
+done | $sort
