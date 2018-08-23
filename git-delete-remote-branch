@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Delete branch on server
+#
+# If no branch is specified, the current branch name is used.
+#
+if [[ $# == 0 ]]; then
+	set -- $(git symbolic-ref --quiet HEAD 2> /dev/null | sed 's#^refs/heads/##')
+fi
+
+for branch; do
+	git push origin --delete "${branch}"
+done
