@@ -50,13 +50,13 @@ sortByAuthor() {
 localBranches() {
 	$debug && echo "## Local branches:" >&2
 	$debug && git branch | sed 's/^..//' >&2
-	git branch | sed 's/^..//'
+	git branch | sed -e 's/^..//' -e 's/.* rebasing \(.*\))/\1/'
 }
 
 remoteBranches() {
 	$debug && echo "## Local branches:" >&2
 	$debug && git branch -r | grep -v HEAD >&2
-	git branch -r | grep -v HEAD
+	git branch -r | egrep -v HEAD
 }
 
 displayBranch() {
