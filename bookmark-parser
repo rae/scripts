@@ -1,0 +1,7 @@
+#!/usr/bin/perl -p
+#
+# converts number-of-seconds dates comonly found in netscape/mozilla bookmark
+# files to actual date strings
+#
+s#(LAST_VISIT|LAST_MODIFIED|ADD_DATE)="(\d+)"#"$1=\"" . scalar localtime($2) . "\""#ge;
+s#<a (href="[^"]*")[^>]* ADD_DATE="([^"]*)"[^>]*>(.*)</a>#<tt>$2</tt> - <a $1>$3</a>#gi;
