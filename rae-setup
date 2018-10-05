@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# debugging
+# set -x
+
+p() {
+    echo ""
+    echo "$(date) -- $*"
+}
+
+cd $HOME
+
+if [ ! -r /usr/local/bin/brew ]; then
+	p Setting up homebrew
+	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+	# bring bash up-to-date with now-installed "brew" commands
+	hash -r
+fi
+
+if [ ! -r /usr/bin/git ]; then
+	p installing Xcode command line tools
+	xcode-select --install
+fi
+
+if [ ! -r joverc ]; then
+	p Trying to use git to clone "'home'"
+	git clone --recursive clith@clith.com:git/home
+	mv -f .ssh .ssh-orig 2>/dev/null
+	cd home
+	mv -i * .[a-zA-Z0-9]* ~
+	cd
+	rmdir home
+fi
+
+
+p installing JOVE, wget, cvs
+brew install jove wget cvs
+
+#do not update Homebrew again
+export HOMEBREW_NO_AUTO_UPDATE=1
+
+p installing ffmpeg
+brew install --with-libass --with-libbluray --with-libssh --with-libvidstab \
+ --with-libvorbis --with-srt --with-tools --with-webp --with-x265 ffmpeg
+
+p installing verious casks
+brew cask install \
+	textmate postman sourcetree slack iterm2 google-chrome \
+	google-drive-file-stream google-hangouts transmission vlc handbrake \
+	makemkv dropbox fission aerial colloquy disk-inventory-x \
+	steam steamcmd 4k-video-downloader ioquake3 licecap \
+	telegram texturepacker freac franz gitifier gitup \
+	gnucash godot gog-galaxy adobe-dng-converter adventure \
+	angband bzflag cocoscreator cyberduck simple-comic devdocs \
+	discord keybase megasync mesasqlite qlmobi qlswift \
+	provisionql qlvideo qlmarkdown
+
+p Setting up macOS
+# defaults write com.apple.menuextra.battery ShowPercent YES
+defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  HH:mm"
+
+p All done.
