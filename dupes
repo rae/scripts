@@ -1,0 +1,55 @@
+#!/usr/bin/perl
+
+my %files=();
+my $DUPES_DIR="./dupes";
+
+if(-d $DUPES_DIR) {
+	warn "Directory already exists: $DUPES_DIR\n";
+	exit(1)
+}
+
+# sort files by date
+my @files = sort {(stat $a)[10] <=> (stat $b)[10]} <*>;
+my $fileCount = scalar @files;
+# for display
+my $count=0;
+my $lineCount=0;
+my $dupeCount=0;
+
+foreach my $file (@files) {
+	next if -d $file;
+	enxt unless -r $file;
+	my $md5 =`md5 -q "$file"`;
+	chomp($md5);
+	if(defined($files{$md5})) {
+		$dupeCount++ if scalar @{ $files{$md5} } == 1;
+		push @{ $files{$md5} }, $file;
+		# print "pushed $file onto [ @{ $files{$md5} } ] for $md5\n";
+	} else {
+		$files{$md5} = [$file];
+		# print "set files{$md5} = [ @{ $files{$md5} } ] ($file)\n";
+	}
+	print ".";
+	if(++$count > 80) {
+		$count=0;
+		$lineCount++;
+		print " - ", int($fileCount/80) - $lineCount, "\n";
+	}
+}
+
+print("\n");
+
+mkdir($DUPES_DIR);
+chdir($DUPES_DIR);
+
+my $moveCount=$dupeCount;
+foreach my $key (keys %files) {
+	my@arr = @{ $files{$key} };
+	# print "$key - @{ $files{$key} }\n";
+	if(scalar @arr > 1) {
+		# skip the first element
+		shift @arr;
+		# move the rest to the trash
+		system "trash", @arr;
+	}
+}
