@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# set -x
+
+startChop=0
+if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
+	startChop=$1
+	shift
+fi
+
+endChop=0
+if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
+	endChop=$1
+	shift
+fi
+
+findNextBackup() {
+	index=0
+	while : ; do
+		((index++))
+		indexSuffix=$(printf "%03d" $index)
+		[ -r "${1}.${indexSuffix}" ] || break
+	done
+	echo "${1}.${indexSuffix}"
+}
+
+backupIfExists() {
+	for f; do
+		if [ -r "$f" ]; then
+			mv "$f" "$(findNextBackup "$f")"
+		fi
+	done
+}
+
+for i; do
+	dur=$(vinfo -d -q "$i")
+	durLessChop="$((dur - endChop))"
+	m3u="${i%.???}".m3u
+	# backupIfExists "${m3u}"
+	(echo "#EXTM3U"; echo "#EXTVLCOPT:start-time=${startChop}"; echo "#EXTVLCOPT:stop-time=${durLessChop}"; echo "${i}") > "${m3u}"
+	echo "$m3u"
+done
