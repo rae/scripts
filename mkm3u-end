@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# mkm3u-all - create playlists that play the from a certain file to the last one
+#
+
+# set -x
+if [ $# -gt 0 ]; then
+	all=("${@}")
+else
+	all=(*[0-9]p.m3u)
+fi
+# > 1 since the last file doesn't need an "*-end.m3u" file
+while ((${#all[@]} > 1)); do
+	ep="${all[0]}"
+	/bin/ls -1 "${all[@]}" > "${ep%.m3u}-end.m3u"
+	echo "${ep%.m3u}-end.m3u"
+	all=("${all[@]:1}")
+done
