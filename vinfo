@@ -8,48 +8,63 @@ my $totalDuration=0;
 foreach my $vid (@ARGV) {
 	dbg "# vid=$vid\n";
 	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|)$/i;
-	open(FFMPEG, "ffmpeg -i \"$vid\" 2>&1 |") || die "${0}: can't read \"$vid\": $!\n";
+	open(FFMPEG, "ffmpeg -hide_banner -i \"$vid\" 2>&1 |") || die "${0}: can't read \"$vid\": $!\n";
 	my $duration="";
 	my $bitrate="";
+	my $milliseconds=0;
 	while(<FFMPEG>) {
 		chomp;
 		# get rid of an parenthesized stuff that might have commas
 		s/ *\([^)]*\)//g;
-		dbg "FF: $_";
+		# dbg "FF: $_";
 		if(m#Duration: (\d\d):(\d\d):([\d.]+).*bitrate: (\d+ [a-z/]+)#) {
-			my $h="$1h";
-			my $m="$2m";
-			my $s="$3s";
-			$totalDuration += $3 + 60*$2 + 3600*$1;
-			if($h eq "00h") {
+			my $hours = $1;
+			my $minutes = $2;
+			my $seconds = $3;
+			my $h=sprintf("%dh", ${hours});
+			my $m="${minutes}m";
+			my $s="${seconds}s";
+			$totalDuration += ${seconds} + 60*${minutes} + 3600*${hours};
+			if($h eq "0h") {
 				$h="";
-				if($m eq "00m") {
+				$m=sprintf("%dm", ${minutes});
+				if($m eq "0m") {
 					$m="";
+					$s=sprintf("%ds", ${seconds});
 				}
 			}
 			
 			$duration="$h$m$s";
+			$milliseconds=($seconds + $minutes*60 + $hours*3600)* 1000;
 			$bitrate=$4;
 		} elsif(m#Video: ([^,]*), ([^,]*), (\d+)x(\d+)[^,]*, ([^,]*), ([^,]*),#) {
 			# note: above regexp uses commas to delineate
-			printf("%13s %12s %6sp \"%s\"\n", $duration, $bitrate, $4,$vid)
+			if($d) {
+				printf("%d%s\n", ($milliseconds+500)/1000, $q ? "" : " $vid")
+			}
+			else {
+				printf("%13s  %d ms  %d s  %12s %6sp \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4,$vid)
+			}
+			last;
 		}
 	}
 }
-my $hours="";
-my $minutes="";
-if($totalDuration > 60) {
-	if($totalDuration > 3600) {
-		my $h = int($totalDuration/3600);
-		$hours = sprintf("%dh", $h);
-		$totalDuration -= $h*3600;
+unless($d) {
+	my $hours="";
+	my $minutes="";
+	if($totalDuration > 60) {
+		if($totalDuration > 3600) {
+			my $h = int($totalDuration/3600);
+			$hours = sprintf("%dh", $h);
+			$totalDuration -= $h*3600;
+		}
+		my $m=int($totalDuration/60);
+		$minutes = sprintf("%dm", $m);
+		$totalDuration -= $m*60;
 	}
-	my $m=int($totalDuration/60);
-	$minutes = sprintf("%dm", $m);
-	$totalDuration -= $m*60;
+	my $seconds=sprintf("%04.2fs", $totalDuration);
+	print "Total duration: ${hours}${minutes}${seconds}\n\n";
 }
-my $seconds=sprintf("%04.2fs", $totalDuration);
-print "Total duration: ${hours}${minutes}${seconds}\n\n";
 __DATA__
 for vid; do
 	echo -n "${vid}:	"
