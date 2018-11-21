@@ -49,7 +49,7 @@ brew cask install \
 	textmate postman sourcetree slack iterm2 google-chrome \
 	google-drive-file-stream google-hangouts transmission vlc handbrake \
 	makemkv dropbox fission aerial colloquy disk-inventory-x \
-	steam steamcmd 4k-video-downloader ioquake3 licecap \
+	steam steamcmd 4k-video-downloader ioquake3 licecap asset-catalog-tinkerer \
 	telegram texturepacker freac franz gitifier gitup \
 	gnucash godot gog-galaxy adobe-dng-converter adventure \
 	angband bzflag cocoscreator cyberduck simple-comic devdocs \
