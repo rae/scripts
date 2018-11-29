@@ -1,19 +1,41 @@
 #!/bin/bash
-# set -x
-debug=false
-authorNamesOffset=30
-authorNamesWidth=25
-((endOfAuthorNames = authorNamesOffset + authorNamesWidth))
 
-args=`getopt abdh $*`
+# git branches
+#
+# Lists all branches together with the author of each branch.
+# Separates remote and local branches by blank line.
+#
+
+# for script debugging
+# set -x
+
+# settings
+
+debug=false
+authorNamesWidth=25
+sort=sortByBranch
+
+# vars
+app="$(basename $0)"
+read -d '' help <<EOF
+
+	usage: $app [-abdh] [-w width]
+
+	-a sort by author
+	-b sort by branch name
+	-d turn on debugging
+	-h print this help and exit
+	-w change author width
+
+EOF
+
+# command line processing
+args=`getopt abdho:w: $*`
 if [ $? != 0 ]; then
-	echo "${0} usage: [-a] [-b] [-h]"
+	echo "$help"
 	exit 2
 fi
 set -- $args
-
-sort=sortByBranch
-
 for i; do
 	case "$i" in
 	-a)
@@ -28,6 +50,19 @@ for i; do
 		# turn on debugging
 		debug=true
 		shift;;
+	-h)
+		# print help
+		echo "$help"
+		exit 0
+		shift;;
+	-o)
+		# change author offset
+		authorNamesOffset="$2"
+		shift; shift;;
+	-o)
+		# change author width
+		authorNamesWidth="$2"
+		shift; shift;;
 	--)
 		shift
 		break;;
@@ -41,10 +76,9 @@ sortByBranch() {
 sortByAuthor() {
 	if $debug; then
 		echo "## sorting by author"
-		echo sort -k 1.${authorNamesOffset}
+		echo sort -k 4
 	fi >&2
 	sort -k 4
-	# sort -k 1.${authorNamesOffset}
 }
 
 localBranches() {
