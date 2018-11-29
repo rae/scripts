@@ -60,4 +60,30 @@ p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
 defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  HH:mm"
 
+shotPList="~/Library/LaunchAgents/local.job.plist"
+if [ ! -r "$shotPList" ]; then
+	p Setting up screenshots launchd job (will need to logout and log back in)
+	[ -d ~/Library/LaunchAgents ] || mkdir -p ~/Library/LaunchAgents
+	cat > ~/Library/LaunchAgents/local.job.plist <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Disabled</key>
+	<false/>
+	<key>Label</key>
+	<string>local.job</string>
+	<key>Program</key>
+	<string>$HOME/bin/noarch-public/ss-rename</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>WatchPaths</key>
+	<array>
+		<string>$HOME/Desktop</string>
+	</array>
+</dict>
+</plist>
+EOF
+fi
+
 p All done.
