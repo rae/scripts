@@ -14,3 +14,15 @@ for my $ss (<"Screen Shot*">) {
 		rename $ss, $newname;
 	}
 }
+
+# Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
+for my $ss (<"Simulator Screen Shot*">) {
+	if($ss =~ /Simulator Screen Shot - (.*) - (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z][a-z][a-z])/) {
+		my $newname="simulator.${2}.${3}${4}.${1}.${5}";
+		if(-e $newname) {
+			warn "$0: \"$newname\" already exists. skipping $ss\n";
+			next;
+		}
+		rename $ss, $newname;
+	}
+}
