@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#
+# Try to use openssl 1.1 (since 1.0.* may not support a proxy)
+#
+if [ -x /usr/local/opt/openssl@1.1/bin/openssl ]; then
+	OPENSSL=/usr/local/opt/openssl@1.1/bin/openssl
+else
+	OPENSSL=openssl
+fi
+
+proxy_opts=""
+if [ ! -z "$http_proxy" ]; then
+	proxy_opts = "-proxy ${http_proxy#http://}"
+fi
+
+for HOST; do
+	"${OPENSSL}" s_client \
+		${proxy_opts} \
+		-connect $HOST:443 \
+		< /dev/null \
+		| sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' \
+		> "${HOST}".cer
+	echo "# Saved ${HOST}.cer"
+done
