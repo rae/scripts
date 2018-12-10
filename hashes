@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# extract hash from certificate file; based on article at:
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning#Extracting_the_Base64_encoded_public_key_information
+#
+
+(
+echo "NSDictionary * domainHashes = @{"
+for i in *.arm *.cer; do
+	# strip extension to get domain
+	domain="${i%.???}"
+	hash=$(openssl x509 -in $i -pubkey -noout \
+		| openssl rsa -pubin -outform der \
+		| openssl dgst -sha256 -binary \
+		| openssl enc -base64)
+	# remove extension for base
+	domainString=$(printf '@"%s"' "${domain}")
+	printf '\t%-45s: @"%s",\n' ${domainString} "${hash}"
+done
+echo "};"
+) 2> /dev/null
