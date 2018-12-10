@@ -1,0 +1,12 @@
+#!/bin/bash
+# arguments passed from git diff
+# set -x
+FILEPATH="$1"
+OLDFILE="$2"
+OLDHEX="$3"
+OLDMODE="$4"
+NEWFILE="$5"
+NEWHEX="$6"
+NEWMODE="$7"
+
+xmldiff "${OLDFILE}" "${NEWFILE}"

@@ -1,0 +1,28 @@
+#!/bin/bash
+# arguments passed from git diff
+# set -x
+OLDFILE="$1"
+NEWFILE="$2"
+
+TMP_NEWFILE=$(mktemp /tmp/output.XXXXXXXXXX)
+TMP_OLDFILE=$(mktemp /tmp/output.XXXXXXXXXX)
+
+if [[ $OLDFILE != "-" ]]; then
+	EXT=."${OLDFILE##*.}"
+else
+	EXT=."${NEWFILE##*.}"
+fi
+
+if [ "$EXT" = .xml ]; then
+	xmllint --format "$NEWFILE" > $TMP_NEWFILE
+	xmllint --format "$OLDFILE" > $TMP_OLDFILE
+elif [ "$EXT" = .json ]; then
+	python -mjson.tool "$NEWFILE" > $TMP_NEWFILE
+	python -mjson.tool "$OLDFILE" > $TMP_OLDFILE
+else
+	TMP_NEWFILE="$NEWFILE"
+	TMP_OLDFILE="$OLDFILE"
+fi
+
+echo "diff $NEWFILE"
+colordiff "$TMP_OLDFILE" "$TMP_NEWFILE" | cat
