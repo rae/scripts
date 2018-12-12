@@ -23,7 +23,7 @@ if [ ! -r /usr/bin/git ]; then
 	xcode-select --install
 fi
 
-if [ ! -r joverc ]; then
+if [ ! -r bin/noarch ]; then
 	p Trying to use git to clone "'home'"
 	git clone --recursive clith@clith.com:git/home
 	mv -f .ssh .ssh-orig 2>/dev/null
