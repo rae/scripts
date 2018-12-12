@@ -14,8 +14,13 @@ for(@videoExtensions) {
 }
 my $all="+all-videos";
 chomp(my $rootDir = `pwd`);
+
+# remove existing "+all-videos"
 my $rmCount = remove_tree($all);
+
+# create new "+all-videos"
 @dirs = make_path($all);
+
 if(scalar @dirs == 0) {
 	warn "Unable to create $all: $?\n";
 	exit(1);
@@ -29,20 +34,35 @@ sub filterVideos {
 		return;
 	}
 	my ($ignored1, $ignored2, $ext) = fileparse($File::Find::name, @videoExtensions);
+	
+	# skip extension-less
 	return unless length($ext);
+
+	# skip unreadable and directories
 	return if(! -r || -d);
+
 	# print "# 1 $File::Find::name\n";
+
 	my $path = $File::Find::dir;
+
+	# strip trailing /
 	$path =~ s#/$##;
+
+	# strip leading "./"
 	$path =~ s#^\.\/##;
+
 	my $dest = "$all/$path/$_";
 	my $destDir = "$all/$path";
 	# print "# \--> $dest\n";
+
+	# check for existing destination file
 	if(-r $dest) {
 		# print "## exists: $dest (from $path)\n";
 		return;
 	}
+
 	# print "# 2 $File::Find::name\n";
+
 	unless($path eq "" || $path eq "." || -d "$rootDir/$destDir") {
 		unless(make_path("$rootDir/$destDir") > 0) {
 			# failed to create directory
@@ -52,5 +72,7 @@ sub filterVideos {
 		print "# $path\n";
 	}
 	# print "# 3 $File::Find::name\n";
+	
+	# make hard link from src to dest
 	link($_, "$rootDir/$destDir/$_") || warn "Unable to link $_: $!\n";
 }
