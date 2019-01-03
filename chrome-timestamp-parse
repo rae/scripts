@@ -5,7 +5,7 @@ import re
 
 def date_from_webkit(webkit_timestamp):
     epoch_start = datetime.datetime(1601,1,1)
-    delta = datetime.timedelta(seconds=int(webkit_timestamp))
+    delta = datetime.timedelta(microseconds=int(webkit_timestamp))
     return epoch_start + delta
 
 for line in sys.stdin:
