@@ -52,7 +52,7 @@ brew cask install \
 	steam steamcmd 4k-video-downloader ioquake3 licecap asset-catalog-tinkerer \
 	telegram texturepacker freac franz gitifier gitup \
 	darktable gnucash godot gog-galaxy adobe-dng-converter adventure \
-	angband bzflag cocoscreator cyberduck simple-comic devdocs \
+	angband bzflag cocoscreator cyberduck simple-comic devdocs servetome \
 	discord keybase megasync mesasqlite qlmobi qlswift \
 	provisionql qlvideo qlmarkdown
 
