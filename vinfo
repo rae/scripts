@@ -65,15 +65,4 @@ unless($d) {
 	my $seconds=sprintf("%04.2fs", $totalDuration);
 	print "Total duration: ${hours}${minutes}${seconds}\n\n";
 }
-__DATA__
-for vid; do
-	echo -n "${vid}:	"
-	ffmpeg -i "${vid}" |& egrep 'Video.*fps'
-done \
-| perl -pe 's# / 0x[0-9a-f]+##;
-			s# \[.*\]##;
-			s# \S+ (tbc|tbn|tbr),?##g;
-			s#, \(default\)##;
-			s#Stream.*Video: ##;
-			s#, yuv\w+\(.*\),#,#;
-			'
+
