@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+my %events = ();
+my @lines = ();
+my $id = undef;
+my @headerLines = ();
+while(<>) {
+	if(/BEGIN:VEVENT/) {
+		@lines=[$_];
+		last;
+	}
+	if(/X-WR-CALNAME:.*/) {
+		s/:.*/:TVshows\r/;
+	}
+	push @headerLines, $_;
+}
+
+while(<>) {
+	if(/BEGIN:VEVENT/) {
+		@lines=($_);
+		next;
+	}
+	if(/END:VEVENT/) {
+		push @lines, $_;
+		next unless defined($id);
+		$events{$id} = [ @lines ];
+		@lines=();
+		$id = undef;
+		next;
+	}
+	if(/UID:(.*)/) {
+		$id = $1;
+		chomp($id);
+	}
+	if(/(BEGIN|END):VCALENDAR/) {
+		# skip
+		next;
+	}
+	# my $line = $_;
+	# my $nextline = undef;
+	# if(/URL:.*$/) {
+	# 	$nextline = <>;
+	# 	if($nextline =~ /^\s+/) {
+	# 		$nextline =~ s/^\s+//;
+	# 		$line =~ s/\r//;
+	# 		chomp($line);
+	# 		$line .= $nextline;
+	# 		$nextline = undef;
+	# 	}
+	# }
+	push @lines, $_;
+	# push @lines, $nextline if defined($nextline);
+}
+
+print @headerLines;
+foreach my $key (sort keys %events) {
+	print @{$events{$key}};
+}
+print "END:VCALENDAR\r\n";
+__DATA__
+BEGIN:VEVENT
+UID:episode1584504@ical.tvmaze.com
+DTSTART:20181227T170000Z
+SEQUENCE:0
+TRANSP:OPAQUE
+DTEND:20181227T170000Z
+URL:http://www.tvmaze.com/episodes/1584504/dc-daily-1x74-episode-74
+SUMMARY:DC Daily: 1x74
+DESCRIPTION:Episode 74
+DTSTAMP:20190125T020546Z
+END:VEVENT
