@@ -50,6 +50,10 @@ def print_header():
     print 'Author: %s' % __author__
     print __url__
     print ''
+    
+def str2scale(str):
+    #if format matchs nn:nn/nn:nn, assume srtmin:srtsec/vidmin:videsec
+    return float(str)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -58,7 +62,7 @@ if __name__ == '__main__':
         print 'Use - for filename to read from stdin and print to stdout'
         sys.exit(1)
 
-    scale = float(sys.argv[2])
+    scale = str2scale(sys.argv[2])
     file = None
     if sys.argv[1] == '-': #Read from stdin and print to stdout
         fix_subtitles(sys.stdin.readlines(), scale, sys.stdout)
