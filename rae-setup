@@ -48,7 +48,7 @@ p installing verious casks
 brew cask install \
 	textmate sublime-text postman sourcetree discord slack iterm2 google-chrome \
 	google-drive-file-stream google-hangouts transmission vlc handbrake simple-comic \
-	makemkv dropbox fission aerial colloquy disk-inventory-x \
+	makemkv mounty dropbox fission aerial colloquy disk-inventory-x \
 	steam steamcmd 4k-video-downloader ioquake3 licecap asset-catalog-tinkerer \
 	telegram texturepacker freac franz gitifier gitup \
 	darktable gnucash godot gog-galaxy adobe-dng-converter adventure \
