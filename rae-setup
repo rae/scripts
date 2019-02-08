@@ -34,8 +34,8 @@ if [ ! -r bin/noarch ]; then
 fi
 
 
-p installing JOVE, wget, cvs
-brew install jove wget cvs
+p installing JOVE, wget, cvs, p7zip
+brew install jove wget cvs p7zip
 
 #do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
