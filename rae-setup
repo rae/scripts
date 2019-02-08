@@ -51,7 +51,7 @@ brew cask install \
 	makemkv mounty dropbox fission aerial colloquy disk-inventory-x \
 	steam steamcmd 4k-video-downloader ioquake3 licecap asset-catalog-tinkerer \
 	telegram texturepacker freac franz gitifier gitup \
-	darktable gnucash godot gog-galaxy adobe-dng-converter adventure \
+	darktable gnucash godot gog-galaxy adobe-dng-converter adventure chocolate-doom \
 	angband bzflag cocoscreator cyberduck simple-comic devdocs servetome \
 	discord keybase megasync mesasqlite qlmobi qlswift \
 	provisionql qlvideo qlmarkdown
