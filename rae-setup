@@ -46,7 +46,7 @@ brew install --with-libass --with-libbluray --with-libssh --with-libvidstab \
 
 p installing verious casks
 brew cask install \
-	textmate sublime-text discord slack iterm2 google-chrome telegram firefox \
+	atom textmate sublime-text discord slack iterm2 google-chrome telegram firefox \
 	adobe-dng-converter google-drive-file-stream google-hangouts transmission \
 	vlc handbrake makemkv dropbox fission aerial colloquy discord disk-inventory-x \
 	steam bzflag chocolate-doom steamcmd 4k-video-downloader ioquake3 licecap simple-comic \
