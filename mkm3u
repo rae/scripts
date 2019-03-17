@@ -36,7 +36,16 @@ for i; do
 	dur=$(vinfo -d -q "$i")
 	durLessChop="$((dur - endChop))"
 	m3u="${i%.???}".m3u
+	if [ -r "$m3u" ]; then
+		echo "Skipping existing $m3u"
+		continue
+	fi
 	# backupIfExists "${m3u}"
-	(echo "#EXTM3U"; echo "#EXTVLCOPT:start-time=${startChop}"; echo "#EXTVLCOPT:stop-time=${durLessChop}"; echo "${i}") > "${m3u}"
-	echo "$m3u"
+	(
+		echo "#EXTM3U";
+		echo "#EXTVLCOPT:start-time=${startChop}";
+		echo "#EXTVLCOPT:stop-time=${durLessChop}";
+		echo "${i}"
+	) > "${m3u}"
+	echo "-> $m3u"
 done
