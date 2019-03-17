@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+
+if (scalar @ARGV != 2) {
+	die "Usage: $ARGV[0] dir1 dir2 - @ARGV\n";
+}
+
+my $src = $ARGV[0];
+my $dest = $ARGV[1];
+my %md5 = ();
+
+-d $src || die "Not a directory: $src\n";
+-d $dest || die "Not a directory: $dest\n";
+
+print "# comparing $src to $dest\n";
+
+my $dir;
+chomp($dir = `pwd`);
+chdir($src) || die "Can't cd to $src: $!\n";
+
+foreach $file (`find . -type f`) {
+	chomp($file);
+	$file =~ s#\./##;
+	next if $file =~ /.*DS_Store.*/;
+	print "# processing $file";
+	$md5{$file} = `md5 -q "$file"`;
+	chomp($md5{$file});
+	print " - $md5{$file}\n";
+}
+
+chdir($dir);
+chdir($dest) || die "Can't cd top $dest: $!\n";
+
+my @keys = sort keys %md5;
+
+foreach $file (sort keys %md5) {
+	print "# checking $file";
+	my $check = `md5 -q "$file" 2>/dev/null`;
+	chomp($check);
+	if($check eq $md5{$file}) {
+		print " - md5 hash matches\n";
+	}
+	else {
+		print " - FILE IS DIFFERENT\n";
+	}
+}
