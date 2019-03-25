@@ -16,8 +16,10 @@ my $base;
 my $m3u;
 my $ts;
 my $ffmpegCmd = "ffmpeg -i 'concat:%s' -c copy -bsf:a aac_adtstoasc '%s'";
-# my $curlCmd = "curl --limit-rate 1M -s";
-my $curlCmd = "curl -s";
+my $limit="400k";
+my $baseCurlCmd = "curl --limit-rate ${limit} -s";
+my $curlCmd = $baseCurlCmd;
+# my $curlCmd = "curl -s";
 my $vidSize="1920";
 my $hdExt = "1080p";
 my $maxDownloadRetryCount = 4;
@@ -34,27 +36,51 @@ if($s) {
 	$vidSize="1280";
 	$hdExt = "720p";
 }
+
+print "## Limiting downloads to ${limit}B/s\n";
 foreach (@ARGV) {
 	my @urlList;
 	unless(m#^(.*)/(\d+)/([\w.]+)$#) {
-		warn "Can't read url $_\n";
-		next;
+		unless(m#^(.*)/(m3u8)/([\w.]+)$#) {
+			warn "Can't read url $_\n";
+			next;
+		} else {
+			print "$1 -- $2 -- $3\n";
+			$base = "$1/$2";
+			$session = "$2";
+			$m3u = $3;
+		}
+	} else {
+		$base = "$1/$2";
+		$session = "$2";
+		$m3u = $3;
 	}
-	$base = "$1/$2";
-	my $session = $2;
-	$m3u = $3;
-	my @videoList = split ' ', `$curlCmd "$base/$m3u"`;
-	my $vidbase = "$base/${vidSize}";
-	my $vidm3u = "$vidbase/${vidSize}.m3u8";
-	my @tsfiles = split ' ', `$curlCmd "$vidm3u"|grep -v '^#'`;
+	$curlCmd = "${baseCurlCmd} --referer $_";
+	print("1 session=${session}\n");
+	$session="101" if $session eq "m3u8";
+	print("2 session=${session} [$base / $m3u]\n");
+	# my @videoList = split ' ', `$curlCmd "$base/$m3u"`;
+	my @videoList = split ' ', `$curlCmd "$_"`;
+	my $vidbase = "${base}/${vidSize}";
+	# my $vidm3u = "${vidbase}/${vidSize}.m3u8";
+	my $vidm3u = `$curlCmd "$_"|grep -v '^#'| sort -r -s | head -1`;
+	chomp($vidm3u);
+	print("vidm3u = $vidm3u\n");
+	$vidbase = ${vidm3u};
+	$vidbase =~ s#/[^/]*$##;
+	print("tslist-cmd: $curlCmd \"$base/$vidm3u\" | grep -v '^#'");
+	my $tslist = `$curlCmd "$base/$vidm3u"|grep -v '^#'`;
+	my @tsfiles = split ' ', $tslist;
 	my $lastTs = $tsfiles[$#tsfiles -1];
-	my $session = "$2";
 
 	# skip already-compiled session videos
 	my @allFiles=<*>;
-	my @sessionVideoList = grep(/$session./, @allFiles);
-	if(@sessionVideoList) {
-		print "Skipping \"@sessionVideoList\"\n";
+	print("3 session=${session}\n");
+	my @sessionVideoList = grep(/${session}./, @allFiles);
+	if(scalar @sessionVideoList > 0) {
+		print "Skipping \"@sessionVideoList\"\n---\n";
+		my $cmd = "echo grep \"${session}\"";
+		system($cmd);
 		next;
 	} else {
 		print "Downloading \"$session\"\n";
@@ -69,14 +95,18 @@ foreach (@ARGV) {
 	my $stopped = 0;
 	my $complete = 0;
 	my $column = 1;
+	my $lastTs = "";
 	foreach $ts (@tsfiles) {
-		my $tsurl = "$vidbase/$ts";
+		my $tsurl = "$base/$ts";
+		print("tsurl = $tsurl\n");
 		my $shouldSkip=0;
 		if(-r $ts) {
 			print " [$ts] ";
 			$shouldSkip=1;
+			$complete = 1;
 		} else {
 			print "  $ts  ";
+			$complete = 0;
 		}
 		$column++;
 		if($column > 10) {
@@ -86,8 +116,10 @@ foreach (@ARGV) {
 		next if $shouldSkip;
 		for (my $downloadAttemptCount = 1; $downloadAttemptCount < $maxDownloadRetryCount; $downloadAttemptCount++) {
 			my $systemValue = system("$curlCmd -O \"$tsurl\"");
+			# print "$curlCmd -O \"$tsurl\"\n";
 			if($systemValue) {
 				my $sig = $? & 127;
+				$lastTs = $tsurl;
 				chomp($dateString = `date`);
 				printf("\n\n[$dateString] Error: failed (signal %d) to download $ts (try ${downloadAttemptCount} of $maxDownloadRetryCount) [$systemValue]\n", $sig);
 				print "  Exited with value ", $? >> 8, "\n";
@@ -106,19 +138,22 @@ foreach (@ARGV) {
 		}
 	}
 	if($complete) {
-		my $cmd = sprintf($ffmpegCmd, join("|", @tsfiles), "../${session}..${hdExt}.mp4");
-		my $printCmd = sprintf($ffmpegCmd, "<$#tsfiles files>", "../${session}..${hdExt}.mp4");
+		my $episode=$session;
+		$episode =~ s/^(\d)/${1}x/;
+		my $cmd = sprintf($ffmpegCmd, join("|", @tsfiles), "../${episode}..${hdExt}.mp4");
+		my $printCmd = sprintf($ffmpegCmd, "<$#tsfiles files>", "../${episode}..${hdExt}.mp4");
 		chomp($dateString = `date`);
 		print "\n\n[$dateString] Creating mp4\n[$dateString] $printCmd\n\n";
 		if(system($cmd)) {
-			warn "Creation of $session.mp4 failed: $!\n";
+			warn "Creation of ${episode} mp4 failed: $!\n";
 		} else {
 			chomp($dateString = `date`);
-			print "\n[$dateString] Creation of $session.mp4 complete\n\n";
+			print "\n[$dateString] Creation of ${episode} mp4 complete\n\n";
 		}
 	} else {
 		chomp($dateString = `date`);
 		print "\n\n[$dateString] Error: failed to download $ts (try #${downloadAttemptCount} of $maxDownloadRetryCount)\n";
+		print "$lastTs\n";
 		print "[$dateString] Halting all downloads.\n";
 		unlink $ts if $ts ne "";
 		last;
