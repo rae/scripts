@@ -34,8 +34,8 @@ if [ ! -r bin/noarch ]; then
 fi
 
 
-p installing JOVE, wget, cvs, p7zip
-brew install jove wget cvs p7zip
+p installing JOVE, wget, cvs, p7zip, chocolate-doom
+brew install jove wget cvs p7zip chocolate-doom
 
 #do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
@@ -100,7 +100,6 @@ brew cask install \
 	adventure \
 	angband \
 	bzflag \
-	chocolate-doom \
 	gog-galaxy \
 	ioquake3 \
 	steamcmd \
