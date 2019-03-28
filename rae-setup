@@ -47,64 +47,73 @@ brew install --with-libass --with-libbluray --with-libssh --with-libvidstab \
 p installing verious casks
 brew cask install \
 	atom\
-	textmate \
+	qlmarkdown \
 	sublime-text \
+	textmate \
+	\
+	colloquy \
 	discord \
-	slack \
-	iterm2 \
-	google-chrome \
-	telegram \
 	firefox \
-	adobe-dng-converter \
-	google-drive-file-stream \
+	franz \
+	google-chrome \
 	google-hangouts \
+	iterm2 \
+	slack \
+	steam \
+	telegram \
 	transmission \
-	vlc \
+	whatsapp \
+	\
+	adobe-dng-converter \
+	\
+	dropbox \
+	google-drive-file-stream \
+	\
+	4k-video-downloader \
+	freac \
 	handbrake \
 	makemkv \
-	dropbox \
-	fission \
+	qlvideo \
+	vlc \
+	\
+	asset-catalog-tinkerer \
+	cocoscreator \
+	devdocs \
+	gitifier \
+	gitup \
+	godot \
+	qlswift \
+	sourcetree \
+	texturepacker \
+	\
 	aerial \
-	colloquy \
-	whatsapp \
-	discord \
-	steam \
+	cyberduck \
+	darktable \
+	fission \
+	gnucash \
+	keybase \
+	licecap \
+	megasync \
+	simple-comic \
+	simple-comic \
+	\
+	adventure \
+	angband \
 	bzflag \
 	chocolate-doom \
-	steamcmd \
-	4k-video-downloader \
+	gog-galaxy \
 	ioquake3 \
-	licecap \
-	simple-comic \
-	asset-catalog-tinkerer \
-	texturepacker \
-	freac \
-	franz \
+	steamcmd \
+	\
 	geektool \
 	mounty \
 	postman \
 	servetome \
-	sourcetree \
-	gitifier \
-	gitup \
-	darktable \
-	gnucash \
-	godot \
-	gog-galaxy \
-	adventure \
-	angband \
-	cocoscreator \
-	cyberduck \
-	simple-comic \
-	devdocs \
-	keybase \
-	megasync \
+	\
 	mesasqlite \
-	qlmobi \
-	qlswift \
 	provisionql \
-	qlvideo \
-	qlmarkdown
+	qlmobi \
+	\
 
 p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
