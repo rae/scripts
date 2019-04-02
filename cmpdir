@@ -7,39 +7,43 @@ if (scalar @ARGV != 2) {
 my $src = $ARGV[0];
 my $dest = $ARGV[1];
 my %md5 = ();
+my $esc = chr(27);
+my $red = "${esc}[41m";
+my $yellow = "${esc}[43m";
+my $off = "${esc}[m";
 
 -d $src || die "Not a directory: $src\n";
 -d $dest || die "Not a directory: $dest\n";
-
-print "# comparing $src to $dest\n";
 
 my $dir;
 chomp($dir = `pwd`);
 chdir($src) || die "Can't cd to $src: $!\n";
 
+print "# scanning ${yellow}${src}${off}\n";
 foreach $file (`find . -type f`) {
 	chomp($file);
 	$file =~ s#\./##;
-	next if $file =~ /.*DS_Store.*/;
-	print "# processing $file";
+	next if $file =~ /^\./;
+	print "### ";
 	$md5{$file} = `md5 -q "$file"`;
 	chomp($md5{$file});
-	print " - $md5{$file}\n";
+	print "$md5{$file} - $file\n";
 }
 
 chdir($dir);
-chdir($dest) || die "Can't cd top $dest: $!\n";
+chdir($dest) || die "${red}Can't cd top $dest: $!{$off}\n";
 
 my @keys = sort keys %md5;
-
+print "# checking ${yellow}${dest}${off}\n";
 foreach $file (sort keys %md5) {
-	print "# checking $file";
+	print "### ";
 	my $check = `md5 -q "$file" 2>/dev/null`;
 	chomp($check);
+	print("$check - $file - ");
 	if($check eq $md5{$file}) {
-		print " - md5 hash matches\n";
+		print "✅ matches\n";
 	}
 	else {
-		print " - FILE IS DIFFERENT\n";
+		print "❌ FILE IS DIFFERENT\n";
 	}
 }
