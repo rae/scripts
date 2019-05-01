@@ -78,7 +78,28 @@ sortByAuthor() {
 		echo "## sorting by author"
 		echo sort -k 4
 	fi >&2
-	sort -k 4
+	sort -k 4 \
+	| colourByAuthor
+}
+
+colourByAuthor() {
+	perl -pe '
+		BEGIN {
+			@colours=(7, 41, 42, 43, 45, 46, 47, 31, 33, 34, 35);
+			$colourIndex=-1;
+			$author="";
+			$esc="\033";
+			$off="${esc}[m";
+			$width='${authorNamesWidth}'-2;
+		}
+		if(/by (\w[. \w]{2,$width}\w)/ && $1 ne $author ) {
+			$colourIndex++;
+			$author = $1;
+			$colourIndex = 0 if $colourIndex >= scalar(@colours);
+		}
+		$colour= "${esc}[" . $colours[$colourIndex];
+		s/(.*)/${esc}[${colour}m${1}${off}/;
+	'
 }
 
 localBranches() {
