@@ -91,6 +91,7 @@ brew cask install \
 	darktable \
 	fission \
 	gnucash \
+	hockey \
 	keybase \
 	licecap \
 	megasync \
