@@ -70,8 +70,10 @@ brew cask install \
 	google-drive-file-stream \
 	\
 	4k-video-downloader \
+	blender \
 	freac \
 	handbrake \
+	krita \
 	makemkv \
 	qlvideo \
 	vlc \
