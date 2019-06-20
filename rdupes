@@ -1,0 +1,50 @@
+#!/usr/bin/ruby
+
+$sizes = {}
+$DUPES_DIR = "++dupes"
+$count = 0
+
+def checkMD5s(arr)
+  md5 = `md5 -q "#{arr.first}"`.chomp
+  md5arr = [md5]
+  same = true
+  arr.drop(1).each { |f|
+    md5 = `md5 -q "#{f}"`.chomp
+    md5arr << md5
+    if md5arr.last != md5arr.first then
+      same = false
+    end
+  }
+  if !same then
+    puts "### multiple files of size #{File.size(arr[0])}!!"
+    arr.map.with_index { |file, i|
+      puts "###### #{md5arr[i]} #{file}"
+    }
+    # (0...arr.count).each do |i|
+    #   puts "###### #{md5arr[i]} #{arr[i]}"
+    # end
+    # puts "### ", arr.each {
+  end
+  return same, md5arr
+end
+
+Dir['**/*'].select { |f|
+  !f.match(/\+\+/)
+}.each do |f|
+  $count += 1
+  size = File.size(f)
+  arr = $sizes[size] || []
+  arr << f
+  $sizes[size] = arr
+end
+
+$dupeCount = 0
+$sizes.each do |size,arr|
+  if arr.count > 1 then
+    $dupeCount += 1
+    puts "#    #{size} = #{arr}"
+    same, md5s = checkMD5s(arr)
+  end
+end
+
+puts("dupes/count = #{$dupeCount}/#{$count}")
