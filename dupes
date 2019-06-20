@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 my %files=();
-my $DUPES_DIR="dupes";
+my $DUPES_DIR="++dupes";
 
 if(-d $DUPES_DIR) {
 	warn "Directory already exists: $DUPES_DIR\n";
@@ -56,10 +56,11 @@ foreach my $md5 (keys %files) {
 			print "${DUPES_DIR}/${md5}-${file}\n";
 		}
 	}
-	# if(scalar @arr > 1) {
-	# 	# skip the first element
-	# 	shift @arr;
-	# 	# move the rest to the trash
-	# 	system "trash", @arr;
-	# }
+	if(scalar @arr > 1) {
+		# skip the first element
+		shift @arr;
+		# move the rest to the trash
+		# system "trash", @arr;
+		print "rm @arr\n";
+	}
 }
