@@ -1,0 +1,66 @@
+#!/usr/bin/perl
+
+my %files=();
+my $DUPES_DIR="++sdupes";
+
+if(-d $DUPES_DIR) {
+	warn "Directory already exists: $DUPES_DIR\n";
+	exit(1)
+}
+
+mkdir($DUPES_DIR);
+
+# sort files by date
+my @files = sort {(stat $a)[10] <=> (stat $b)[10]} <*>;
+my $fileCount = scalar @files;
+# for display
+my $count=0;
+my $lineCount=0;
+my $dupeCount=0;
+my $sectionCount = 160;
+
+foreach my $file (@files) {
+	next if -d $file;
+	next unless -r $file;
+	my $md5 = -s "$file";
+	chomp($md5);
+	if(defined($files{$md5})) {
+		if(scalar @{ $files{$md5} } == 1) {
+			$dupeCount++;
+		}
+		push @{ $files{$md5} }, $file;
+		# print "\nln ${file} ${DUPES_DIR}/${file}\n";
+		# print "pushed $file onto [ @{ $files{$md5} } ] for $md5\n";
+	} else {
+		$files{$md5} = [$file];
+		# print "set files{$md5} = [ @{ $files{$md5} } ] ($file)\n";
+	}
+	print "." if $count % 2;
+	$count++;
+	if($count > ${sectionCount}) {
+		$count=0;
+		$lineCount++;
+		print " - ", int($fileCount/${sectionCount}) - $lineCount, "\n";
+	}
+}
+
+print("\n\n");
+
+my $moveCount=$dupeCount;
+foreach my $md5 (keys %files) {
+	my @arr = @{ $files{$md5} };
+	if(scalar @arr > 1) {
+		print "${key}: @{ $files{$md5} }\n";
+		foreach $file (@arr) {
+			link "${file}", "${DUPES_DIR}/${md5}-${file}";
+			print "${DUPES_DIR}/${md5}-${file}\n";
+		}
+	}
+	if(scalar @arr > 1) {
+		# skip the first element
+		shift @arr;
+		# move the rest to the trash
+		# system "trash", @arr;
+		print "rm @arr\n";
+	}
+}
