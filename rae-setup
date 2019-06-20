@@ -34,18 +34,17 @@ if [ ! -r bin/noarch ]; then
 fi
 
 
-p installing JOVE, wget, cvs, p7zip, chocolate-doom
-brew install jove wget cvs p7zip chocolate-doom
+# allow HOMEBREW_NO_AUTO_UPDATE to handle any required updating - will turn of off below
+p installing ffmpeg JOVE, wget, cvs, p7zip, chocolate-doom youtube-dl libdvdcss
+brew install ffmpeg jove wget cvs p7zip chocolate-doom youtube-dl libdvdcss
 
 #do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
 
-p installing ffmpeg
-brew install --with-libass --with-libbluray --with-libssh --with-libvidstab \
- --with-libvorbis --with-srt --with-tools --with-webp --with-x265 ffmpeg
-
 p installing verious casks
-brew cask install \
+# not firefox
+# not google-chrome
+brew cask install -q \
 	atom\
 	qlmarkdown \
 	sublime-text \
@@ -53,11 +52,10 @@ brew cask install \
 	\
 	colloquy \
 	discord \
-	firefox \
 	franz \
-	google-chrome \
 	google-hangouts \
 	iterm2 \
+	skype \
 	slack \
 	steam \
 	telegram \
@@ -67,7 +65,7 @@ brew cask install \
 	adobe-dng-converter \
 	\
 	dropbox \
-	google-drive-file-stream \
+	google-backup-and-sync \
 	\
 	4k-video-downloader \
 	blender \
@@ -76,12 +74,12 @@ brew cask install \
 	krita \
 	makemkv \
 	qlvideo \
+	soundcloud-downloader \
 	vlc \
 	\
 	asset-catalog-tinkerer \
 	cocoscreator \
 	devdocs \
-	gitifier \
 	gitup \
 	godot \
 	qlswift \
@@ -115,7 +113,7 @@ brew cask install \
 	mesasqlite \
 	provisionql \
 	qlmobi \
-	\
+
 
 p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
