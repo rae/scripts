@@ -21,6 +21,7 @@ chdir($src) || die "Can't cd to $src: $!\n";
 
 print "# scanning ${yellow}${src}${off}\n";
 foreach $file (`find . -type f`) {
+	next if /\.DS_Store/;
 	chomp($file);
 	$file =~ s#\./##;
 	next if $file =~ /^\./;
