@@ -1,0 +1,74 @@
+#!/usr/bin/env perl
+
+use File::Path qw(make_path remove_tree);
+use File::Find;
+use POSIX qw(strftime);
+
+my $skipDirs = 1;
+if($ARGV[0] eq "-d") {
+	$skipDirs = 0;
+}
+my $esc = chr(27);
+my $red = "${esc}[41m";
+my $yellow = "${esc}[43m";
+my $off = "${esc}[m";
+
+my $ddir = "+bydate";
+# remove existing "+bydate"
+my $rmCount = remove_tree($ddir);
+
+# create new "+bydate"
+@dirs = make_path(($ddir));
+
+if(scalar @dirs == 0) {
+	warn "Unable to create \"$ddir\". Exiting.\n";
+	exit 0;
+}
+
+my @unorderedFilelist;
+if($skipDirs) {
+	@unorderedFilelist = <*>;
+	push @unorderedFilelist, <*/*>;
+}
+else {
+	@unorderedFilelist = (`find . -type f`);
+}
+
+my @sortedFilelist = sort { -M $a <=> -M $b } @unorderedFilelist;
+my $index = 1;
+my $fmt = sprintf("%%0%dd", int(log10(scalar @unorderedFilelist))+1);
+
+foreach $file (@sortedFilelist) {
+	chomp($file);
+	next if -d $file;
+	next if $file =~ m#/\..*#;
+	# skip subtitles
+	next if $file =~ /.*\.(srt|idx|sub|txt|nfo|exe)$/;
+	$file =~ s#^\./##;
+	print "### ";
+	process($file)
+}
+
+sub process($) {
+	my $file = shift;
+	my @statinfo = stat($file);
+	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat($file);
+	my $str = strftime "%y%m%d", localtime($mtime);
+	$str = sprintf($fmt, $index);
+	$index++;
+	my $dest;
+	if($file =~ m#^(.*)/([^/]+)$#) {
+		$dest = "$ddir/$str.$2";
+	}
+	else {
+		$dest = "$ddir/$str.$file";
+	}
+	print "$dest\n";
+	link $file, $dest || warn "Link failed: $dest\n";
+}
+
+sub log10 {
+	my $n = shift;
+	return log($n)/log(10);
+}
