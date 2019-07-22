@@ -17,11 +17,9 @@ my $m3u;
 my $ts;
 my $ffmpegCmd = "ffmpeg -i 'concat:%s' -c copy -bsf:a aac_adtstoasc '%s'";
 my $limit="400k";
-my $baseCurlCmd = "curl --limit-rate ${limit} -s";
-my $curlCmd = $baseCurlCmd;
-# my $curlCmd = "curl -s";
-my $vidSize="1920";
-my $hdExt = "1080p";
+my $limitOpt = "--limit-rate ${limit}";
+my $baseCurlCmd = "curl -s";
+# $baseCurlCmd .= " $limitOpt";
 my $maxDownloadRetryCount = 4;
 my $dateString;
 
@@ -32,38 +30,76 @@ local $SIG{HUP} = sub {
 	exit(0);
 };
 
-if($s) {
-	$vidSize="1280";
-	$hdExt = "720p";
-}
+sub findBaseAudioVideo($) {
+	my $url = shift;
+	my $base = $url;
+	$base =~ s#/[^/]*?$##;
+	print "url = $url\n";
+	print "base = $base\n";
+	open CURL, "curl -s \"$url\"|" || die "$!: Can't open URL $url";
+	my $audio = "";
+	my $highestBandwidth=0;
+	my $video = "";
+	while(<CURL>) {
+		chomp;
+		if(m#GROUP-ID="program_audio".*URI="(.+)"#) {
+			$audio = $1;
+			next;
+		}
+		if(m#EXT-X-STREAM-INF.*\bBANDWIDTH=(\d+)#) {
+			if($1 > $highestBandwidth) {
+				$highestBandwidth = $1;
+				$video = <CURL>;
+				next;
+			}
+		}
+	}
+	close(CURL);
+	print("base = $base\n");
+	print("audio = $audio\n");
+	print("video = $video\n");
+	return ($base, $audio, $video)
+} 
 
-print "## Limiting downloads to ${limit}B/s\n";
+#print "## Limiting downloads to ${limit}B/s\n";
 foreach (@ARGV) {
-	my @urlList;
 	unless(m#^(.*)/(\d+)/([\w.]+)$#) {
 		unless(m#^(.*)/(m3u8)/([\w.]+)$#) {
 			warn "Can't read url $_\n";
 			next;
 		} else {
 			print "$1 -- $2 -- $3\n";
-			$base = "$1/$2";
+			# $base = "$1/$2";
 			$session = "$2";
-			$m3u = $3;
+			# $m3u = $3;
 		}
 	} else {
-		$base = "$1/$2";
+		# $base = "$1/$2";
 		$session = "$2";
-		$m3u = $3;
+		# $m3u = $3;
 	}
-	$curlCmd = "${baseCurlCmd} --referer $_";
+	# $curlCmd = "${baseCurlCmd} --referer $_";
 	print("1 session=${session}\n");
 	$session="101" if $session eq "m3u8";
-	print("2 session=${session} [$base / $m3u]\n");
+	# print("2 session=${session} [$base / $m3u]\n");
+	print("2 session=${session}\n");
+	
 	# my @videoList = split ' ', `$curlCmd "$base/$m3u"`;
-	my @videoList = split ' ', `$curlCmd "$_"`;
-	my $vidbase = "${base}/${vidSize}";
+	# my @videoList = split ' ', `$curlCmd "$_"`;
+	# my $vidbase = "${base}/${vidSize}";
 	# my $vidm3u = "${vidbase}/${vidSize}.m3u8";
-	my $vidm3u = `$curlCmd "$_"|grep -v '^#'| sort -r -s | head -1`;
+	# my $stream_m3u = `$curlCmd "$_"`;
+	# my $vidm3u = `$curlCmd "$_"|grep -v '^#'| sort -r -s | head -1`;
+
+	mkdir $session unless -d $session;
+	chdir $session || warn "was not able to chdir: $!\n";
+	chomp(my $date = `date`);
+	print "\n# Starting $session [$tsfiles[0] - ${lastTs}] on ${date}\n";
+	print "$_\n";
+
+	my ($base, $audio, $video) = findBaseAudioVideo($_);
+	foreach my $vidm3u ("$video", "$audio") {
+
 	chomp($vidm3u);
 	print("vidm3u = $vidm3u\n");
 	$vidbase = ${vidm3u};
@@ -85,12 +121,6 @@ foreach (@ARGV) {
 	} else {
 		print "Downloading \"$session\"\n";
 	}
-
-	mkdir $session unless -d $session;
-	chdir $session || warn "was not able to chdir: $!\n";
-	chomp(my $date = `date`);
-	print "\n# Starting $session [$tsfiles[0] - ${lastTs}] on ${date}\n";
-	print "$_\n";
 
 	my $stopped = 0;
 	my $complete = 0;
