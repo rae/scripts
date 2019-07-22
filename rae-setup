@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Download this script and run to install everything on a new macOS
+# including $HOME files
+
 # debugging
 # set -x
 
@@ -8,13 +11,16 @@ p() {
     echo "$(date) -- $*"
 }
 
-cd $HOME
+BREW_URL="https://raw.githubusercontent.com/Homebrew/install/master/install"
+
+# cd to $HOME
+cd
 
 if [ ! -r /usr/local/bin/brew ]; then
 	p Setting up homebrew
-	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	/usr/bin/ruby -e "$(curl -fsSL ${BREW_URL})"
 
-	# bring bash up-to-date with now-installed "brew" commands
+	# bring bash command cache up-to-date with now-installed "brew" command
 	hash -r
 fi
 
@@ -34,16 +40,18 @@ if [ ! -r bin/noarch ]; then
 fi
 
 
-# allow HOMEBREW_NO_AUTO_UPDATE to handle any required updating - will turn of off below
-p installing ffmpeg JOVE, wget, cvs, p7zip, chocolate-doom youtube-dl libdvdcss
-brew install ffmpeg jove wget cvs p7zip chocolate-doom youtube-dl libdvdcss
+# coretools include GNU ls et al.
+p installing ffmpeg, coretools, JOVE, wget, p7zip, cvs, p7zip, telnet, chocolate-doom, youtube-dl, libdvdcss
+brew install ffmpeg coretools jove wget p7zip cvs p7zip telnet chocolate-doom youtube-dl libdvdcss
 
-#do not update Homebrew again
+# The first time brew runs, it updates itself. Do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
 
-p installing verious casks
-# not firefox
-# not google-chrome
+# cask installs macOS apps in /Applications. These are grouped roughtly by smiilarity,
+# and then alphabetical
+# - not firefox
+# - not google-chrome
+p installing various casks to /Applications
 brew cask install -q \
 	atom\
 	qlmarkdown \
@@ -95,7 +103,6 @@ brew cask install -q \
 	keybase \
 	licecap \
 	megasync \
-	simple-comic \
 	simple-comic \
 	\
 	adventure \
