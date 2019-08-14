@@ -42,8 +42,8 @@ foreach $file (@sortedFilelist) {
 	chomp($file);
 	next if -d $file;
 	next if $file =~ m#/\..*#;
-	# skip subtitles
-	next if $file =~ /.*\.(srt|idx|sub|txt|nfo|exe)$/;
+	# skip subtitles, playlists
+	next if $file =~ /.*\.(srt|idx|sub|txt|nfo|exe|m3u)$/;
 	$file =~ s#^\./##;
 	print "### ";
 	process($file)
