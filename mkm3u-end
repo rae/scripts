@@ -12,7 +12,10 @@ fi
 # > 1 since the last file doesn't need an "*-end.m3u" file
 while ((${#all[@]} > 1)); do
 	ep="${all[0]}"
-	/bin/ls -1 "${all[@]}" > "${ep%.m3u}-end.m3u"
+	# m3us cannot have square brackets (and maybe other characters?)
+	/bin/ls -1 "${all[@]}" \
+		| sed -e 's/\[/%5B/g' -e 's/\]/%5D/g' \
+		> "${ep%.m3u}-end.m3u"
 	echo "${ep%.m3u}-end.m3u"
 	all=("${all[@]:1}")
 done

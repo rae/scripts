@@ -2,33 +2,56 @@
 
 # set -x
 
+#
+# -f = force writing m3u even if it means overwriting existing
+#
+skipIfExists=true
+if [[ $1 == "-f" ]]; then
+	skipIfExists=false
+	shift
+fi
+
+#
+# -h - help
+#
+if [[ $1 == "-h" ]]; then
+	cat <<-EOF
+	Usage: $0 [-f] [nn1] [nn2] file.ext [file.ext ...]
+	
+	Build playlists for the argument files, saving them to "file.m3u". Existing m3u files
+	are skpped and not overwritten by default.
+	
+	    -f   - force overwriting of existing m3u files
+	    nn1  - decimal # of seconds to crop off the start of all files
+	    nn2  - decomal # of seconds to crop off the end of all files
+	EOF
+	exit 0
+fi
+
+#
+# ARG 1: n - number of seconds to chop off the start
+#
 startChop=0
 if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
 	startChop=$1
 	shift
 fi
 
+#
+# ARG 2: n - number of seconds to chop off the start
+#
 endChop=0
 if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
 	endChop=$1
 	shift
 fi
 
-findNextBackup() {
-	index=0
-	while : ; do
-		((index++))
-		indexSuffix=$(printf "%03d" $index)
-		[ -r "${1}.${indexSuffix}" ] || break
-	done
-	echo "${1}.${indexSuffix}"
-}
-
-backupIfExists() {
-	for f; do
-		if [ -r "$f" ]; then
-			mv "$f" "$(findNextBackup "$f")"
-		fi
+safe() {
+	for i; do
+		echo -n "$i" \
+		| curl -Gso /dev/null -w %{url_effective} --data-urlencode @- "" \
+		| sed -e 's/%20/ /g' \
+		| cut -c 3-
 	done
 }
 
@@ -36,16 +59,16 @@ for i; do
 	dur=$(vinfo -d -q "$i")
 	durLessChop="$((dur - endChop))"
 	m3u="${i%.???}".m3u
-	if [ -r "$m3u" ]; then
+	if $skipIfExists && [ -r "$m3u" ]; then
 		echo "Skipping existing $m3u"
 		continue
 	fi
-	# backupIfExists "${m3u}"
+	safeName="$(echo "$i" | sed -e 's/\[/%5B/g' -e 's/\]/%5D/g')"
 	(
 		echo "#EXTM3U";
 		echo "#EXTVLCOPT:start-time=${startChop}";
 		echo "#EXTVLCOPT:stop-time=${durLessChop}";
-		echo "${i}"
+		echo "${safeName}"
 	) > "${m3u}"
-	echo "-> $m3u"
+	echo "$i -> $m3u"
 done
