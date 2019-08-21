@@ -41,8 +41,8 @@ fi
 
 
 # coretools include GNU ls et al.
-p installing ffmpeg, coretools, JOVE, wget, p7zip, cvs, p7zip, telnet, chocolate-doom, youtube-dl, libdvdcss
-brew install ffmpeg coretools jove wget p7zip cvs p7zip telnet chocolate-doom youtube-dl libdvdcss
+p installing ffmpeg, coretools, JOVE, wget, p7zip, cvs, p7zip, telnet, chocolate-doom, youtube-dl, libdvdcss, media-info, jq
+brew install ffmpeg coretools jove wget p7zip cvs p7zip telnet chocolate-doom youtube-dl libdvdcss media-info jq
 
 # The first time brew runs, it updates itself. Do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
