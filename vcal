@@ -1,0 +1,36 @@
+#!/usr/bin/perl -an
+BEGIN {
+	my $summary = "";
+	my $start = "";
+	my $end = "";
+	my $wasSummary=0;
+}
+s/\s+$//;
+if(/^[^ ]/) {
+	$wasSummary = 0;
+}
+if(/^SUMMARY:(.*)/) {
+	$summary = $1;
+	$summary =~ s/\s*\r?\n\s*/ /g;
+	$wasSummary = 1;
+}
+elsif($wasSummary && /^ +(.*)/) {
+	$summary .= $1;
+}
+elsif(/^DTSTART.TZID=.*:(\d\d\d\d)(\d\d)(\d\d)T(\d\d\d\d)/) {
+	$start = "${1}-${2}-${3}.${4}";
+}
+elsif(/^DTEND.TZID=.*:(\d\d\d\d)(\d\d)(\d\d)T(\d\d\d\d)/) {
+	$end = "${1}-${2}-${3}.${4}";
+}
+elsif(/^END:VEVENT/) {
+	if($start ne "") {
+		print "-> ${start} ${summary}\n";
+	}
+	$summary="";
+	$start="";
+	$end="";
+}
+else {
+	$wasSummary = 0;
+}
