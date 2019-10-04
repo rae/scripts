@@ -67,8 +67,10 @@ brew cask install -q \
 	slack \
 	steam \
 	telegram \
+	tor-browser \
 	transmission \
 	whatsapp \
+	wireshark \
 	\
 	adobe-dng-converter \
 	\
@@ -80,9 +82,11 @@ brew cask install -q \
 	freac \
 	handbrake \
 	krita \
+	linein \
 	makemkv \
 	qlvideo \
 	soundcloud-downloader \
+	vuescan \
 	vlc \
 	\
 	asset-catalog-tinkerer \
@@ -93,6 +97,7 @@ brew cask install -q \
 	qlswift \
 	sourcetree \
 	texturepacker \
+	tiled \
 	\
 	aerial \
 	cyberduck \
