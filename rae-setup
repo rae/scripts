@@ -98,6 +98,9 @@ brew cask install -q \
 	sourcetree \
 	texturepacker \
 	tiled \
+	vagrant \
+	virtualbox \
+	virtualbox-extension-pack \
 	\
 	aerial \
 	cyberduck \
