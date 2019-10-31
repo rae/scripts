@@ -19,32 +19,38 @@ my $dir;
 chomp($dir = `pwd`);
 chdir($src) || die "Can't cd to $src: $!\n";
 
-print "# scanning ${yellow}${src}${off}\n";
-foreach $file (`find . -type f`) {
-	next if /\.DS_Store/;
-	chomp($file);
-	$file =~ s#\./##;
-	next if $file =~ /^\./;
-	print "### ";
-	$md5{$file} = `md5 -q "$file"`;
-	chomp($md5{$file});
-	print "$md5{$file} - $file\n";
-}
+my @files = `find . -type f`;
+chomp(@files);
 
 chdir($dir);
 chdir($dest) || die "${red}Can't cd top $dest: $!{$off}\n";
 
+print "# scanning ${yellow}${dest}${off}\n";
+foreach $file (sort @files) {
+	next if /\.DS_Store/;
+	$file =~ s#\./##;
+	next if $file =~ /^\./;
+	$md5{$file} = `md5 -q "$file"`;
+	chomp($md5{$file});
+	print "### $md5{$file}: $file\n";
+}
+
+chdir($dir);
+chdir($src) || die "Can't cd to $src: $!\n";
+
+print "\n# scanning ${yellow}${src}${off}\n";
 my @keys = sort keys %md5;
-print "# checking ${yellow}${dest}${off}\n";
-foreach $file (sort keys %md5) {
-	print "### ";
+foreach $file (@keys) {
+	next if /\.DS_Store/;
+	$file =~ s#\./##;
+	next if $file =~ /^\./;
 	my $check = `md5 -q "$file" 2>/dev/null`;
 	chomp($check);
-	print("$check - $file - ");
 	if($check eq $md5{$file}) {
-		print "✅ matches\n";
+		print "### ✅ matches $md5{$file}: $file\n";
 	}
 	else {
-		print "❌ FILE IS DIFFERENT\n";
+		print "### ❌ no match $md5{$file} != $check\n";
+		print("    $file\n");
 	}
 }
