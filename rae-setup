@@ -76,6 +76,7 @@ brew cask install -q \
 	\
 	dropbox \
 	google-backup-and-sync \
+	zenmap \
 	\
 	4k-video-downloader \
 	blender \
