@@ -41,8 +41,24 @@ fi
 
 
 # coretools include GNU ls et al.
-p installing ffmpeg, coretools, JOVE, wget, p7zip, cvs, p7zip, telnet, chocolate-doom, youtube-dl, libdvdcss, media-info, jq
-brew install ffmpeg coretools jove wget p7zip cvs p7zip telnet chocolate-doom youtube-dl libdvdcss media-info jq
+installs=( \
+	chocolate-doom \
+	coretools \
+	cvs \
+	docker \
+	ffmpeg \
+	jove \
+	jq \
+	libdvdcss \
+	media-info \
+	p7zip \
+	p7zip \
+	telnet \
+	wget \
+	youtube-dl \
+)
+p installing $installs
+brew install $installs
 
 # The first time brew runs, it updates itself. Do not update Homebrew again
 export HOMEBREW_NO_AUTO_UPDATE=1
@@ -93,8 +109,11 @@ brew cask install -q \
 	asset-catalog-tinkerer \
 	cocoscreator \
 	devdocs \
+	docker \
+	docker-toolbox \
 	gitup \
 	godot \
+	kitematic \
 	qlswift \
 	sourcetree \
 	texturepacker \
