@@ -123,6 +123,7 @@ brew cask install -q \
 	virtualbox-extension-pack \
 	\
 	aerial \
+	clipy \
 	cyberduck \
 	darktable \
 	fission \
