@@ -133,7 +133,7 @@ brew cask install -q \
 	keybase \
 	licecap \
 	megasync \
-	messenger-native \
+	messenger \
 	simple-comic \
 	\
 	adventure \
