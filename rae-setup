@@ -129,9 +129,11 @@ brew cask install -q \
 	fission \
 	gnucash \
 	hockey \
+	iswiff \
 	keybase \
 	licecap \
 	megasync \
+	messenger-native \
 	simple-comic \
 	\
 	adventure \
