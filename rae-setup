@@ -47,6 +47,7 @@ installs=( \
 	cvs \
 	docker \
 	ffmpeg \
+	gnumeric \
 	jove \
 	jq \
 	libdvdcss \
