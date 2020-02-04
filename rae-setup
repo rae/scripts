@@ -69,8 +69,8 @@ export HOMEBREW_NO_AUTO_UPDATE=1
 # - not firefox
 # - not google-chrome
 p installing various casks to /Applications
-brew cask install -q \
-	atom\
+casks=(\
+	atom \
 	qlmarkdown \
 	sublime-text \
 	textmate \
@@ -151,7 +151,12 @@ brew cask install -q \
 	mesasqlite \
 	provisionql \
 	qlmobi \
+)
 
+for cask in ${casks[*]}; do
+	echo # `date` -- installing $cask
+	brew cask install -q "$cask" || echo "## cask $cask failed"
+done
 
 p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
@@ -159,25 +164,18 @@ defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  HH:mm"
 
 shotPList="~/Library/LaunchAgents/local.job.plist"
 if [ ! -r "$shotPList" ]; then
-	p Setting up screenshots launchd job (will need to logout and log back in)
+	p "Setting up screenshots launchd job (will need to logout and log back in)"
 	[ -d ~/Library/LaunchAgents ] || mkdir -p ~/Library/LaunchAgents
-	cat > ~/Library/LaunchAgents/local.job.plist <<EOF
+	cat > ~/Library/LaunchAgents/local.job.plist <<"EOF"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Disabled</key>
-	<false/>
-	<key>Label</key>
-	<string>local.job</string>
-	<key>Program</key>
-	<string>$HOME/bin/noarch-public/ss-rename</string>
-	<key>RunAtLoad</key>
-	<true/>
-	<key>WatchPaths</key>
-	<array>
-		<string>$HOME/Desktop</string>
-	</array>
+	<key>Disabled</key>   <false/>
+	<key>Label</key>      <string>local.job</string>
+	<key>Program</key>     <string>$HOME/bin/noarch-public/ss-rename</string>
+	<key>RunAtLoad</key>  <true/>
+	<key>WatchPaths</key> <array><string>$HOME/Desktop</string></array>
 </dict>
 </plist>
 EOF
