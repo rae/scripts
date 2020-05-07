@@ -1,0 +1,71 @@
+#!/bin/bash
+# set -x
+audio_offset=0.55
+wait_time=2
+args=`getopt o:t: $*`
+quality=
+app=$(basename $0)
+usage() {
+	echo ""
+    echo "Usage: $app [-o audio_offset] [-t seconds] output_base"
+	out="output_base".$(date +%F-%H%M.%S)
+	echo ""
+	echo "    recoding will be: ${out}.mkv"
+	echo ""
+    exit 2
+}
+
+if [ $? != 0 ]
+then
+        usage
+fi
+set -- $args
+
+for i; do
+        case "$i"
+		in
+                -o)
+                        echo Setting audio offset to "'"$2"'"; audio_offset="$2"; shift;
+                        shift;;
+                -t)
+                        echo Setting wait time to "'"$2"'"; wait_time="$2"; shift;
+                        shift;;
+                --)
+                        shift; break;;
+        esac
+done
+
+if [ $# = 0 ]; then
+    usage
+fi
+
+out="$1".$(date +%F-%H%M.%S)
+SwitchAudioSource -s 'Soundflower (2ch)'
+cat <<EOF
+
+
+##
+## Hit ctrl-C to stop recording "$out.mkv".
+## Waiting for $wait_time seconds...
+##
+
+
+EOF
+sleep $wait_time
+ffmpeg \
+	-hide_banner \
+	-loglevel info \
+	-thread_queue_size 512 \
+	-f avfoundation \
+	-i "1" \
+	-thread_queue_size 512 \
+	-f avfoundation \
+	-ac 2 \
+	-itsoffset $audio_offset \
+	-i ":2" \
+	-c:a aac \
+	-c:v libx264 \
+	-crf 0 \
+	-preset ultrafast \
+	-threads 0 "$out".mkv
+SwitchAudioSource -s 'External Headphones'
