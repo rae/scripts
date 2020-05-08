@@ -72,6 +72,7 @@ p installing various casks to /Applications
 casks=(\
 	atom \
 	qlmarkdown \
+	WebPQuickLook \
 	sublime-text \
 	textmate \
 	\
