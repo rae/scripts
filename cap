@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -x
+# set -x 
 audio_offset=0.55
 wait_time=2
 args=`getopt o:t: $*`
@@ -22,24 +22,25 @@ fi
 set -- $args
 
 for i; do
-        case "$i"
-		in
-                -o)
-                        echo Setting audio offset to "'"$2"'"; audio_offset="$2"; shift;
-                        shift;;
-                -t)
-                        echo Setting wait time to "'"$2"'"; wait_time="$2"; shift;
-                        shift;;
-                --)
-                        shift; break;;
-        esac
+	case "$i"
+	in
+	-o)
+		echo Setting audio offset to "'"$2"'"; audio_offset="$2"; shift;
+		shift;;
+	-t)
+		echo Setting wait time to "'"$2"'"; wait_time="$2"; shift;
+		shift;;
+	--)
+		shift; break;;
+	esac
 done
 
 if [ $# = 0 ]; then
     usage
 fi
 
-out="$1".$(date +%F-%H%M.%S)
+out="$@".$(date +%F-%H%M.%S)
+
 SwitchAudioSource -s 'Soundflower (2ch)'
 cat <<EOF
 
