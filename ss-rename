@@ -5,8 +5,22 @@
 chdir("$ENV{HOME}/Desktop");
 
 for my $ss (<"Screen Shot*">) {
-	if($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d).([a-z][a-z][a-z])/) {
+	if($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z]+)$/) {
 		my $newname="${1}.${2}${3}.${4}";
+		if(-e $newname) {
+			warn "$0: \"$newname\" already exists. skipping $ss\n";
+			next;
+		}
+		rename $ss, $newname;
+	}
+	elsif($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
+		my $date = $1;
+		my $hour = $2;
+		my $minsec = $3;
+		my $extra = $5;
+		my $ext = $6;
+		$hour += 12 if $4 =~ /[Pp][Mm]/;
+		my $newname="${date}.${hour}${minsec}${extra}.${ext}";
 		if(-e $newname) {
 			warn "$0: \"$newname\" already exists. skipping $ss\n";
 			next;
