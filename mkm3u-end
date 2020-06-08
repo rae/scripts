@@ -13,7 +13,9 @@ fi
 while ((${#all[@]} > 1)); do
 	ep="${all[0]}"
 	# m3us cannot have square brackets (and maybe other characters?)
-	/bin/ls -1 "${all[@]}" \
+	for i in "${all[@]}"; do
+		echo "$i"
+	done \
 		| sed -e 's/\[/%5B/g' -e 's/\]/%5D/g' \
 		> "${ep%.m3u}-end.m3u"
 	echo "${ep%.m3u}-end.m3u"
