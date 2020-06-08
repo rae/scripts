@@ -19,20 +19,36 @@ my $dir;
 chomp($dir = `pwd`);
 chdir($src) || die "Can't cd to $src: $!\n";
 
-my @files = `find . -type f`;
+my @files = `find . -type f \! -name '.*'`;
 chomp(@files);
 
 chdir($dir);
 chdir($dest) || die "${red}Can't cd top $dest: $!{$off}\n";
 
+my $width = 100;
+my @missing=();
 print "# scanning ${yellow}${dest}${off}\n";
+my $count=0;
+my $lines=1;
+print " 1 ";
 foreach $file (sort @files) {
+	print ".";
+	$count++;
+	if($count % $width == 0) {
+		$lines++;
+		print "\n";
+		printf("%2d ", $lines);
+	}
 	next if /\.DS_Store/;
 	$file =~ s#\./##;
 	next if $file =~ /^\./;
+	if(! -r $file) {
+		push @missing, $file;
+		next;
+	}
 	$md5{$file} = `md5 -q "$file"`;
 	chomp($md5{$file});
-	print "### $md5{$file}: $file\n";
+	# print "### $md5{$file}: $file\n";
 }
 
 chdir($dir);
@@ -40,6 +56,8 @@ chdir($src) || die "Can't cd to $src: $!\n";
 
 print "\n# scanning ${yellow}${src}${off}\n";
 my @keys = sort keys %md5;
+my @matches=();
+my @mismatches=();
 foreach $file (@keys) {
 	next if /\.DS_Store/;
 	$file =~ s#\./##;
@@ -47,10 +65,19 @@ foreach $file (@keys) {
 	my $check = `md5 -q "$file" 2>/dev/null`;
 	chomp($check);
 	if($check eq $md5{$file}) {
-		print "### ✅ matches $md5{$file}: $file\n";
+		print "✅";
+		push @matches, $file;
+		# print "### ✅ matches $md5{$file}: $file\n";
 	}
 	else {
-		print "### ❌ no match $md5{$file} != $check\n";
-		print("    $file\n");
+		print "❌";
+		push @mismatches, $file;
+		# print "### ❌ no match $file\n");
 	}
+	print "\n" if (scalar(@matches) + scalar(@mismatches)) % $width == 0;
 }
+print "\n";
+print "Missing:\n";
+print join("\n", @missing), "\n\n";
+print "Mismatches:\n";
+print join("\n", @mismatches), "\n\n";
