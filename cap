@@ -1,6 +1,6 @@
 #!/bin/bash
 # set -x 
-audio_offset=0.55
+audio_offset=0.45
 wait_time=2
 args=`getopt o:t: $*`
 quality=
