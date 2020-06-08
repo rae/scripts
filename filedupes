@@ -1,0 +1,130 @@
+#!/usr/bin/perl -s
+
+use List::Util qw[min max];
+
+my %md5s=();
+
+my @args = ();
+if(scalar(@ARGV) == 0) {
+	@args = sort {(stat $a)[10] <=> (stat $b)[10]} <*>;
+}
+else {
+	@args = @ARGV;
+}
+if($r) {
+	@args = reverse @args;
+}
+
+# for display
+my $count = 0;
+my $lineCount = 0;
+my $dupeCount = 0;
+my $filesPerLine = 999999;
+my $filesPerDot = 1;
+my $kDotsPerLine = 80;
+my $maxLineCount = 10;
+my $fileCount=0;
+sub commify {
+    local $_  = shift;
+    1 while s/^([-+]?\d+)(\d{3})/$1,$2/;
+    return $_;
+}
+
+my $before = `df -h .`;
+
+my @files=();
+
+sub scan($) {
+	my $file = shift @_;
+	return if $file eq "." || $file eq "..";
+	if(-d $file) {
+		print "--> scanning $file\n" if $d;
+		foreach my $f (<"${file}/*">) {
+			scan($f);
+		}
+		return;
+	}
+	return unless -r $file;
+	push @files, $file;
+	print "\nAdded $file\n" if $d;
+}
+
+foreach my $arg (@args) {
+	scan $arg;
+}
+
+$fileCount = scalar @files;
+$filesPerDot = int(max(1, $fileCount / ($maxLineCount * $kDotsPerLine)));
+$filesPerLine = min($fileCount, $filesPerDot * $kDotsPerLine);
+$maxLineCount = min(10, $fileCount / $filesPerLine);
+
+print "\n# Processing ", commify($fileCount), " files...";
+print " [perDot=$filesPerDot, perLine=$filesPerLine, lines=$maxLineCount]" if $v;
+print "\n\n";
+
+sub process($) {
+	my $file = shift @_;
+	my $md5 =`md5 -q "$file"`;
+	chomp($md5);
+	if(defined($md5s{$md5})) {
+		if(scalar @{ $md5s{$md5} } == 1) {
+			$dupeCount++;
+		}
+		push @{ $md5s{$md5} }, $file;
+		print "\nln ${file} ${DUPES_DIR}/${file}\n" if $vvv;
+		print "pushed $file onto [ @{ $md5s{$md5} } ] for $md5\n" if $vvv;
+	} else {
+		$md5s{$md5} = [$file];
+		print "set md5s{$md5} = [ @{ $md5s{$md5} } ] ($file)\n" if $vvv;
+	}
+	$count++;
+	if($filesPerDot == 1) {
+		print ".";
+	} else {
+		print "." if $count % $filesPerDot == 0;
+	}
+	if($count >= $filesPerLine) {
+		$count=0;
+		$lineCount++;
+		print " : ", $maxLineCount - $lineCount + 1, "\n";
+	}
+}
+
+foreach my $arg (@files) {
+	process $arg;
+}
+
+print("\n\n");
+
+if($dupeCount == 0) {
+	my $count = commify($fileCount);
+	print "No duplicates found in $count files.\n";
+	exit(0);
+}
+
+my $moveCount=$dupeCount;
+my $removalsCount=0;
+my $uniqueFilesCount = scalar keys %md5s;
+$filesPerDot = min($uniqueFilesCount, $uniqueFilesCount/$kDotsPerLine);
+$count = 0;
+foreach my $md5 (sort { scalar(@{ $md5s{$a} }) <=> scalar(@{ $md5s{$b} }) } keys %md5s) {
+	$count++;
+	print "x" if $count % $filesPerDot == 0;
+	my @arr = @{ $md5s{$md5} };
+	if(scalar @arr > 1) {
+		print "${md5} --  $arr[0]"if $v;
+		if ($img || $image) {
+			system("$ENV{HOME}/bin/Darwin/imgls $arr[0]");
+		}
+		shift @arr;
+		foreach $file (@arr) {
+			print "    rm ${file}\n" if $vv;
+			unlink $file;
+			$removalsCount++;
+		}
+		print "\n"if $v;
+	}
+}
+
+print "\n\nFiles removed: ${removalsCount}\n";
+print "\nBefore:\n", $before, "\n\nAfter:\n", `df -h .`, "\n";
