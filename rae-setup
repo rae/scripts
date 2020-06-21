@@ -77,8 +77,10 @@ casks=(\
 	textmate \
 	\
 	colloquy \
+	betterzip \
 	discord \
 	franz \
+	go2shell \
 	google-hangouts \
 	iterm2 \
 	skype \
@@ -130,6 +132,8 @@ casks=(\
 	darktable \
 	fission \
 	gnucash \
+	geotag \
+	geotagger \
 	hockey \
 	iswiff \
 	keybase \
@@ -163,6 +167,9 @@ p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
 defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  HH:mm"
 
+#
+# all of this is to simply set the default name of screenshots to yyyy-mm-dd.hhmm.ss.jpg
+#
 shotPList="~/Library/LaunchAgents/local.job.plist"
 if [ ! -r "$shotPList" ]; then
 	p "Setting up screenshots launchd job (will need to logout and log back in)"
