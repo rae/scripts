@@ -43,7 +43,11 @@ foreach my $vid (@ARGV) {
 				printf("%d %s\n", ($milliseconds+500)/1000, $q ? "" : " $vid")
 			}
 			else {
-				printf("%13s  %d ms  %d s  %12s %6sp  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4,$vid)
+				if($x) {
+					printf("%13s  %d ms  %d s  %12s %9s  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, "${4}x${3}",$vid)
+				} else {
+					printf("%13s  %d ms  %d s  %12s %6sp  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4,$vid)
+				}
 			}
 			last;
 		}
