@@ -1,0 +1,86 @@
+#!/bin/zsh
+# set -x
+
+prog=`basename $0`
+
+usage() {
+	echo "Usage: $prog reaction video offset [location] [duration]"
+    exit 0
+}
+
+dry_run=0
+while getopts hn opt; do
+    case $opt in
+        h) usage ;;
+        n) dry_run=1 ;;
+    esac
+done
+
+if [ $# -lt 3 ]; then
+	echo "Usage: $0 reaction video offset [location] [duration]"
+	exit 1
+fi
+reaction="$1"
+show="$2"
+srcDelay="$3"
+duration=""
+location=centre
+if [ $# -gt 3 ]; then
+	location="$4"
+fi
+if [ $# -gt 4 ]; then
+	duration=(-t $5)
+fi
+
+out="${reaction%.*}-Reid.${reaction##*.}"
+echo "##"
+echo "## ${show}"
+echo "## / ${reaction}"
+echo "## / delay=$srcDelay"
+echo "## / out=$out"
+echo "##"
+reactionWidth=0
+reactionHeight=0
+showWidth=0
+showHeight=0
+reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
+echo "reactionExpr=$reactionExpr"
+eval "$reactionExpr"
+showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
+echo "showExpr=$showExpr"
+eval "$showExpr"
+overlayScale=.75
+overlayWidth=$((reactionWidth * overlayScale))
+overlayHeight=$((reactionHeight * overlayScale))
+srcScale=$(($overlayWidth / $showWidth))
+case $location in
+	right) hoffset=$((reactionWidth - showWidth*srcScale)) ;;
+	left) hoffset=0 ;;
+	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale)) ;;
+esac
+voffset=$((reactionHeight - showHeight*srcScale))
+echo "#    show size: ${showWidth}x${showHeight}: $show"
+echo "# rection size: ${reactionWidth}x${reactionHeight}: $reaction"
+echo "# overlay size: ${overlayWidth}x${overlayHeight} @ ${overlayScale}X"
+echo "# `date` -- starting @ srcScale = $srcScale (dx=$hoffset, dy=$voffset)]"
+ffmpeg -y -hide_banner -loglevel warning -stats \
+	-i "${reaction}" \
+	-itsoffset "${srcDelay}" \
+	-i "${show}" \
+	-filter_complex "[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}" \
+	-map 0:a \
+	${duration[*]} \
+	"$out"
+echo "# `date` -- done: $out"
+
+# -vf subtitles="${show}"
+# -t 00:10:00 \
+# -t 00:02:00 \
+# "$out" && open "$out"
+# -map 0:0 -map 1:1 -shortest \
+
+# To copy the video from input_0.mp4 and audio from input_1.mp4:
+#
+# $ ffmpeg -i input_0.mp4 -i input_1.mp4 -c copy -map 0:0 -map 1:1 -shortest out.mp4
+
+
