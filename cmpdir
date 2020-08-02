@@ -1,7 +1,21 @@
 #!/usr/bin/env perl
 
+my $usage = "Usage: cmpdir [-v] [-h] dir1 dir2\n";
+
+my $verbose=0;
+
+if ($ARGS[0] eq "-v") {
+	$verbose = 0;
+	shift @ARGV;
+}
+
+if ($ARGV[0] eq "-h") {
+	print "Help: ", $usage;
+	exit(0);
+}
+
 if (scalar @ARGV != 2) {
-	die "Usage: $ARGV[0] dir1 dir2 - @ARGV\n";
+	die $usage;
 }
 
 my $src = $ARGV[0];
@@ -12,8 +26,8 @@ my $red = "${esc}[41m";
 my $yellow = "${esc}[43m";
 my $off = "${esc}[m";
 
--d $src || die "Not a directory: $src\n";
--d $dest || die "Not a directory: $dest\n";
+-d $src || die "Source not a directory: $src\n";
+-d $dest || die "Dest not a directory: $dest\n";
 
 my $dir;
 chomp($dir = `pwd`);
@@ -54,7 +68,7 @@ foreach $file (sort @files) {
 chdir($dir);
 chdir($src) || die "Can't cd to $src: $!\n";
 
-print "\n# scanning ${yellow}${src}${off}\n";
+print "\n# scanning ${yellow}${src}${off}\n" if $verbose;
 my @keys = sort keys %md5;
 my @matches=();
 my @mismatches=();
