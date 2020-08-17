@@ -65,8 +65,16 @@ sub findBaseAudioVideo($) {
 foreach (@ARGV) {
 	unless(m#^(.*)/(\d+)/([\w.]+)$#) {
 		unless(m#^(.*)/(m3u8)/([\w.]+)$#) {
-			warn "Can't read url $_\n";
-			next;
+			unless(m#^(.*)/([\w.]+)$#) {
+				warn "Can't read url $_\n";
+				next;
+			}
+			else {
+				print "$1 -- $2\n";
+				# $base = "$1/$2";
+				$session = "m3u8";
+				# $m3u = $3;
+			}
 		} else {
 			print "$1 -- $2 -- $3\n";
 			# $base = "$1/$2";
@@ -100,93 +108,94 @@ foreach (@ARGV) {
 	my ($base, $audio, $video) = findBaseAudioVideo($_);
 	foreach my $vidm3u ("$video", "$audio") {
 
-	chomp($vidm3u);
-	print("vidm3u = $vidm3u\n");
-	$vidbase = ${vidm3u};
-	$vidbase =~ s#/[^/]*$##;
-	print("tslist-cmd: $curlCmd \"$base/$vidm3u\" | grep -v '^#'");
-	my $tslist = `$curlCmd "$base/$vidm3u"|grep -v '^#'`;
-	my @tsfiles = split ' ', $tslist;
-	my $lastTs = $tsfiles[$#tsfiles -1];
+		chomp($vidm3u);
+		print("vidm3u = $vidm3u\n");
+		$vidbase = ${vidm3u};
+		$vidbase =~ s#/[^/]*$##;
+		print("tslist-cmd: $curlCmd \"$base/$vidm3u\" | grep -v '^#'");
+		my $tslist = `$curlCmd "$base/$vidm3u"|grep -v '^#'`;
+		my @tsfiles = split ' ', $tslist;
+		my $lastTs = $tsfiles[$#tsfiles -1];
 
-	# skip already-compiled session videos
-	my @allFiles=<*>;
-	print("3 session=${session}\n");
-	my @sessionVideoList = grep(/${session}./, @allFiles);
-	if(scalar @sessionVideoList > 0) {
-		print "Skipping \"@sessionVideoList\"\n---\n";
-		my $cmd = "echo grep \"${session}\"";
-		system($cmd);
-		next;
-	} else {
-		print "Downloading \"$session\"\n";
-	}
-
-	my $stopped = 0;
-	my $complete = 0;
-	my $column = 1;
-	my $lastTs = "";
-	foreach $ts (@tsfiles) {
-		my $tsurl = "$base/$ts";
-		print("tsurl = $tsurl\n");
-		my $shouldSkip=0;
-		if(-r $ts) {
-			print " [$ts] ";
-			$shouldSkip=1;
-			$complete = 1;
+		# skip already-compiled session videos
+		my @allFiles=<*>;
+		print("3 session=${session}\n");
+		my @sessionVideoList = grep(/${session}./, @allFiles);
+		if(scalar @sessionVideoList > 0) {
+			print "Skipping \"@sessionVideoList\"\n---\n";
+			my $cmd = "echo grep \"${session}\"";
+			system($cmd);
+			next;
 		} else {
-			print "  $ts  ";
-			$complete = 0;
+			print "Downloading \"$session\"\n";
 		}
-		$column++;
-		if($column > 10) {
-			$column=1;
-			print "\n";
-		}
-		next if $shouldSkip;
-		for (my $downloadAttemptCount = 1; $downloadAttemptCount < $maxDownloadRetryCount; $downloadAttemptCount++) {
-			my $systemValue = system("$curlCmd -O \"$tsurl\"");
-			# print "$curlCmd -O \"$tsurl\"\n";
-			if($systemValue) {
-				my $sig = $? & 127;
-				$lastTs = $tsurl;
-				chomp($dateString = `date`);
-				printf("\n\n[$dateString] Error: failed (signal %d) to download $ts (try ${downloadAttemptCount} of $maxDownloadRetryCount) [$systemValue]\n", $sig);
-				print "  Exited with value ", $? >> 8, "\n";
-				print "  $ts  \n";
-				$columns=2;
-				if($sig == 2) {
-					print "^C\n";
-					print "\n[$dateString] Cleaning up and exiting; deleting $ts..\n";
-					unlink $ts;
-					exit(0);
-				}
-			} else {
+
+		my $stopped = 0;
+		my $complete = 0;
+		my $column = 1;
+		my $lastTs = "";
+		foreach $ts (@tsfiles) {
+			my $tsurl = "$base/$ts";
+			print("tsurl = $tsurl\n");
+			my $shouldSkip=0;
+			if(-r $ts) {
+				print " [$ts] ";
+				$shouldSkip=1;
 				$complete = 1;
-				last;
+			} else {
+				print "  $ts  ";
+				$complete = 0;
+			}
+			$column++;
+			if($column > 10) {
+				$column=1;
+				print "\n";
+			}
+			next if $shouldSkip;
+			for (my $downloadAttemptCount = 1; $downloadAttemptCount < $maxDownloadRetryCount; $downloadAttemptCount++) {
+				my $systemValue = system("$curlCmd -O \"$tsurl\"");
+				# print "$curlCmd -O \"$tsurl\"\n";
+				if($systemValue) {
+					my $sig = $? & 127;
+					$lastTs = $tsurl;
+					chomp($dateString = `date`);
+					printf("\n\n[$dateString] Error: failed (signal %d) to download $ts (try ${downloadAttemptCount} of $maxDownloadRetryCount) [$systemValue]\n", $sig);
+					print "  Exited with value ", $? >> 8, "\n";
+					print "  $ts  \n";
+					$columns=2;
+					if($sig == 2) {
+						print "^C\n";
+						print "\n[$dateString] Cleaning up and exiting; deleting $ts..\n";
+						unlink $ts;
+						exit(0);
+					}
+				} else {
+					$complete = 1;
+					last;
+				}
 			}
 		}
-	}
-	if($complete) {
-		my $episode=$session;
-		$episode =~ s/^(\d)/${1}x/;
-		my $cmd = sprintf($ffmpegCmd, join("|", @tsfiles), "../${episode}..${hdExt}.mp4");
-		my $printCmd = sprintf($ffmpegCmd, "<$#tsfiles files>", "../${episode}..${hdExt}.mp4");
-		chomp($dateString = `date`);
-		print "\n\n[$dateString] Creating mp4\n[$dateString] $printCmd\n\n";
-		if(system($cmd)) {
-			warn "Creation of ${episode} mp4 failed: $!\n";
+		if($complete) {
+			my $episode=$session;
+			$episode =~ s/^(\d)/${1}x/;
+			my $cmd = sprintf($ffmpegCmd, join("|", @tsfiles), "../${episode}..${hdExt}.mp4");
+			my $printCmd = sprintf($ffmpegCmd, "<$#tsfiles files>", "../${episode}..${hdExt}.mp4");
+			chomp($dateString = `date`);
+			print "\n\n[$dateString] Creating mp4\n[$dateString] $printCmd\n\n";
+			if(system($cmd)) {
+				warn "Creation of ${episode} mp4 failed: $!\n";
+			} else {
+				chomp($dateString = `date`);
+				print "\n[$dateString] Creation of ${episode} mp4 complete\n\n";
+			}
 		} else {
 			chomp($dateString = `date`);
-			print "\n[$dateString] Creation of ${episode} mp4 complete\n\n";
+			print "\n\n[$dateString] Error: failed to download $ts (try #${downloadAttemptCount} of $maxDownloadRetryCount)\n";
+			print "$lastTs\n";
+			print "[$dateString] Halting all downloads.\n";
+			unlink $ts if $ts ne "";
+			last;
 		}
-	} else {
-		chomp($dateString = `date`);
-		print "\n\n[$dateString] Error: failed to download $ts (try #${downloadAttemptCount} of $maxDownloadRetryCount)\n";
-		print "$lastTs\n";
-		print "[$dateString] Halting all downloads.\n";
-		unlink $ts if $ts ne "";
-		last;
+		chdir "..";
 	}
-	chdir "..";
 }
