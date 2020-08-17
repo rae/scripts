@@ -9,6 +9,7 @@ usage() {
 }
 
 dry_run=0
+srcDelay=0
 while getopts hn opt; do
     case $opt in
         h) usage ;;
@@ -16,28 +17,28 @@ while getopts hn opt; do
     esac
 done
 
-if [ $# -lt 3 ]; then
-	echo "Usage: $0 reaction video offset [location] [duration]"
+if [ $# -lt 2 ]; then
+	echo "Usage: $0 reaction video [duration] [offset] [location]"
 	exit 1
 fi
 reaction="$1"
 show="$2"
-srcDelay="$3"
 duration=""
 location=centre
-if [ $# -gt 3 ]; then
-	location="$4"
-fi
-if [ $# -gt 4 ]; then
-	duration=(-t $5)
-fi
+[ -z "$3" ] || srcDelay="$3"
+[ -z "$4" ] || duration=(-t "$4")
+[ -z "$5" ] || location="$5"
+# if [ $# -gt 4 ]; then
+# 	duration=(-t $5)
+# fi
 
 out="${reaction%.*}-Reid.${reaction##*.}"
 echo "##"
 echo "## ${show}"
 echo "## / ${reaction}"
-echo "## / delay=$srcDelay"
-echo "## / out=$out"
+echo "## / delay = $srcDelay"
+echo "## / out = $out"
+echo "## / duration = $duration"
 echo "##"
 reactionWidth=0
 reactionHeight=0
@@ -49,7 +50,7 @@ eval "$reactionExpr"
 showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
 echo "showExpr=$showExpr"
 eval "$showExpr"
-overlayScale=.75
+overlayScale=.5
 overlayWidth=$((reactionWidth * overlayScale))
 overlayHeight=$((reactionHeight * overlayScale))
 srcScale=$(($overlayWidth / $showWidth))
@@ -63,6 +64,20 @@ echo "#    show size: ${showWidth}x${showHeight}: $show"
 echo "# rection size: ${reactionWidth}x${reactionHeight}: $reaction"
 echo "# overlay size: ${overlayWidth}x${overlayHeight} @ ${overlayScale}X"
 echo "# `date` -- starting @ srcScale = $srcScale (dx=$hoffset, dy=$voffset)]"
+echo ""
+
+q='"'
+sq="'"
+echo ffmpeg -y -hide_banner -loglevel warning -stats \\
+echo \	-i $q"${reaction}"$q \\
+echo \	-itsoffset "${srcDelay}" \\
+echo \	-i $q"${show}"$q \\
+echo \	-filter_complex $sq"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$sq \\
+echo \	-map 0:a \\
+echo \	${duration[*]} \\
+echo \	$q"$out"$q
+echo ""
+
 ffmpeg -y -hide_banner -loglevel warning -stats \
 	-i "${reaction}" \
 	-itsoffset "${srcDelay}" \
@@ -82,5 +97,3 @@ echo "# `date` -- done: $out"
 # To copy the video from input_0.mp4 and audio from input_1.mp4:
 #
 # $ ffmpeg -i input_0.mp4 -i input_1.mp4 -c copy -map 0:0 -map 1:1 -shortest out.mp4
-
-
