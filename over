@@ -50,7 +50,7 @@ eval "$reactionExpr"
 showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
 echo "showExpr=$showExpr"
 eval "$showExpr"
-overlayScale=.5
+overlayScale=.65
 overlayWidth=$((reactionWidth * overlayScale))
 overlayHeight=$((reactionHeight * overlayScale))
 srcScale=$(($overlayWidth / $showWidth))
