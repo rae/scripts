@@ -2,7 +2,12 @@
 # renames screenshots on the desktop that match "Screen Shot 2020-02-02 at 12.34.55.ext" to
 # 2020-02-02.12.34.55.ext
 #
-chdir("$ENV{HOME}/Desktop");
+my $dir = "$ENV{HOME}/Desktop";
+if(scalar @ARGV > 0) {
+	$dir = $ARGV[0];
+	shift;
+}
+chdir($dir);
 
 for my $ss (<"Screen Shot*">) {
 	if($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z]+)$/) {
