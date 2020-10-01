@@ -5,8 +5,8 @@ echo "Offset is $offset"
 
 # assume web server points to a disk under /Volumes (typical for macOS)
 dir="${PWD#/Volumes/}"
-host="$(hostname)"
-port=":3030"
+host="${HOSTNAME-$(hostname)}"
+port=":${PORT-3030}"
 
 # template for each video's web page
 read -r -d '' html <<EOF
