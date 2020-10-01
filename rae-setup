@@ -83,6 +83,7 @@ casks=(\
 	go2shell \
 	google-hangouts \
 	iterm2 \
+	signal \
 	skype \
 	slack \
 	steam \
@@ -107,6 +108,7 @@ casks=(\
 	makemkv \
 	qlvideo \
 	soundcloud-downloader \
+	soundflower \
 	vuescan \
 	vlc \
 	\
