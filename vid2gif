@@ -1,4 +1,7 @@
 #!/bin/sh
+
+set -x
+
 if [ $# != 4 ]; then
 	echo "Usage: $0 start duration movie gif"
 	exit 1
@@ -15,7 +18,7 @@ gif="$4"
 
 # set -x
 
-width=$(ffmpeg -i "${movie}" 2>&1 | grep -i video | perl -pe 's/^.* (\d+)x\d+,.*/${1}/;')
+width=$(ffmpeg -i "${movie}" 2>&1 | grep -i video | perl -pe 's/^.* (\d\d\d+)x\d\d\d+[, ].*/${1}/;')
 
 # temp files
 palette="`mktemp -t vid2gif`.png"
@@ -25,7 +28,7 @@ filters="fps=15,scale=${width}:-1:flags=lanczos"
 ffmpeg -hide_banner -accurate_seek -loglevel warning -ss "${start}" -t "${duration}" -i "${movie}" \
 	-vf "${filters},palettegen" -y $palette
 ffmpeg -hide_banner -accurate_seek -loglevel warning -ss "${start}" -t "${duration}" -i "${movie}" \
-	-s 1280x720 -i "${palette}" -filter_complex "${filters} [x]; [x][1:v] paletteuse" -y "${gif}"
+	-i "${palette}" -filter_complex "${filters} [x]; [x][1:v] paletteuse" -y "${gif}"
 
 # ffmpeg -accurate_seek -ss "${start}" -t "${duration}" -i "${movie}" -pix_fmt rgb24 -r 30 "${gif}"
 
