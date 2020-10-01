@@ -1,4 +1,6 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl -s
+
+use File::Basename;
 
 my $usage = "Usage: cmpdir [-v] [-h] dir1 dir2\n";
 
@@ -46,24 +48,34 @@ my $count=0;
 my $lines=1;
 print " 1 ";
 foreach $file (sort @files) {
-	print ".";
-	$count++;
-	if($count % $width == 0) {
-		$lines++;
-		print "\n";
-		printf("%2d ", $lines);
+    print ".";
+    $count++;
+    if($count % $width == 0) {
+        $lines++;
+        print "\n";
+        printf("%2d ", $lines);
+    }
+	next if $file =~ /\.DS_Store/;
+	$file =~ s#^\./##;
+	my $dir = dirname($file);
+	my $base = basename($file);
+	$base =~ s#^\.(.*).icloud$#\1#;
+	if($f) {
+		if(-r "$file") {
+			print "found   - $file\n" if $v;
+		} elsif(-r "$dir/.$base.icloud") {
+			print "iCloud  - $file\n";
+		} else {
+            push @missing, $file;
+            next;
+		}
+	} else {
+		$md5{$file} = `md5 -q "$file"`;
+		chomp($md5{$file});
 	}
-	next if /\.DS_Store/;
-	$file =~ s#\./##;
-	next if $file =~ /^\./;
-	if(! -r $file) {
-		push @missing, $file;
-		next;
-	}
-	$md5{$file} = `md5 -q "$file"`;
-	chomp($md5{$file});
-	# print "### $md5{$file}: $file\n";
 }
+
+exit(0) if $f;
 
 chdir($dir);
 chdir($src) || die "Can't cd to $src: $!\n";
