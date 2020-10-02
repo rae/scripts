@@ -4,75 +4,138 @@
 prog=`basename $0`
 
 usage() {
-	echo "Usage: $prog reaction video offset [location] [duration]"
+	echo "Usage: $prog [-h | -n | -l loc | -t dur | -e trim | -m margin | -s scale] reaction show [offset [left/centre/right [duration [trim]]]]"
+	echo "    defaults: reaction show offset=0 'centre' duration=max trim=0"
     exit 0
 }
 
 dry_run=0
 srcDelay=0
-while getopts hn opt; do
+duration=""
+location=centre
+end_trim=0
+# spacing between the show and the edge of the screen
+margin=20
+
+# how big the overlay is
+overlayScale=.5
+
+while getopts hnl:t:e:m:s: opt; do
     case $opt in
         h) usage ;;
         n) dry_run=1 ;;
+		l) location="${OPTARG}" ;;
+		t) duration=(-t "${OPTARG}") ;;
+		e) end_trim="${OPTARG}" ;;
+		m) margin="${OPTARG}" ;;
+		s) overlayScale="${OPTARG}" ;;
     esac
 done
+# remove flags from the paramater list
+shift $((OPTIND-1))
+
+echo "## ARGS are" "${@}"
 
 if [ $# -lt 2 ]; then
-	echo "Usage: $0 reaction video [duration] [offset] [location]"
+	usage
 	exit 1
 fi
+
 reaction="$1"
 show="$2"
-duration=""
-location=centre
+
+reactionWidth=0
+reactionHeight=0
+reactionDuration=0
+showWidth=0
+showHeight=0
+showDuration=0
+
+reactionDurationExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep Duration: | perl -pe 's/.*Duration:\s*([0-9:.]+),.*/reactionDuration=${1}/')"
+eval "$reactionDurationExpr"
+reactionSeconds=$(echo "${reactionDuration}" | perl -pe 's#(\d+):(\d+):(\d+)\.(\d+)#$4/100 + $3 + $2*60 + $1*3600#e')
+
+showDurationExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Duration: | perl -pe 's/.*Duration:\s*([0-9:.]+),.*/showDuration=${1}/')"
+eval "$showDurationExpr"
+# 00:00:06.68
+showSeconds=$(echo "${showDuration}" | perl -pe 's#(\d+):(\d+):(\d+)\.(\d+)#$4/100 + $3 + $2*60 + $1*3600#e')
 [ -z "$3" ] || srcDelay="$3"
-[ -z "$4" ] || duration=(-t "$4")
-[ -z "$5" ] || location="$5"
-# if [ $# -gt 4 ]; then
-# 	duration=(-t $5)
-# fi
+[ -z "$4" ] || location="$4"
+[ -z "$5" ] || duration=(-t "$5")
+[ -z "$6" -o "x$6" = x0 ] || end_trim="${6}"
+
+# convert min:sec to seconds if it's formatted that way
+end_trim=$(echo "${end_trim}" | perl -pe 's#(\d+):(\d+)#$1*60 + $2#e')
 
 out="${reaction%.*}-Reid.${reaction##*.}"
 echo "##"
-echo "## ${show}"
-echo "## / ${reaction}"
-echo "## / delay = $srcDelay"
-echo "## / out = $out"
-echo "## / duration = $duration"
+echo "##     show = ${show}"
+echo "##    - duration = ${showDuration} [$((${showSeconds} - end_trim)) s]"
+echo "## reaction = ${reaction}"
+echo "##    - duration = ${reactionDuration} [${reactionSeconds} s]"
+echo "##    delay = $srcDelay"
+echo "## location = $location"
+echo "## duration = $duration"
+echo "## end trim = ${end_trim}"
 echo "##"
-reactionWidth=0
-reactionHeight=0
-showWidth=0
-showHeight=0
+echo "## / out = $out"
+echo ""
+
 reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
 echo "reactionExpr=$reactionExpr"
 eval "$reactionExpr"
+
 showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
 echo "showExpr=$showExpr"
 eval "$showExpr"
-overlayScale=.65
+
 overlayWidth=$((reactionWidth * overlayScale))
 overlayHeight=$((reactionHeight * overlayScale))
 srcScale=$(($overlayWidth / $showWidth))
 case $location in
-	right) hoffset=$((reactionWidth - showWidth*srcScale)) ;;
-	left) hoffset=0 ;;
+	right) hoffset=$((reactionWidth - showWidth*srcScale - $margin)) ;;
+	left) hoffset=$margin ;;
 	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale)) ;;
 esac
-voffset=$((reactionHeight - showHeight*srcScale))
-echo "#    show size: ${showWidth}x${showHeight}: $show"
+echo "#        show size: ${showWidth}x${showHeight}: $show"
+echo "#reaction duration: ${reactionDuration} [${reactionSeconds} seconds]"
+echo "#    show duration: ${showDuration} [${showSeconds} seconds]"
 echo "# rection size: ${reactionWidth}x${reactionHeight}: $reaction"
 echo "# overlay size: ${overlayWidth}x${overlayHeight} @ ${overlayScale}X"
+voffset=$((reactionHeight - showHeight*srcScale - $margin))
 echo "# `date` -- starting @ srcScale = $srcScale (dx=$hoffset, dy=$voffset)]"
 echo ""
 
 q='"'
 sq="'"
+
+# Arguments to -filter_complex for various situations
+# ---------------------------------------------------
+#
+# Mixing audio from 2 sources:
+#	amix=inputs=2:duration=longest
+#
+# for different volumes:
+#	[0:0]volume=0.09[a];[1:0]volume=1.8[b];[a][b]amix=inputs=2:duration=longest
+#	[a]adelay=${srcDelay}|${srcDelay}[a];[a][b]amix=inputs=2:dropout_transition=0
+#
+# Audio delay
+#	[a]adelay=2000|2000[a];[a][b]amix=inputs=2:dropout_transition=0
+#
+
+trim=()
+if [ \! -z "$end_trim" ]; then
+	trim=(-ss 0 -to $(($showSeconds - $end_trim)) )
+fi
+
 echo ffmpeg -y -hide_banner -loglevel warning -stats \\
 echo \	-i $q"${reaction}"$q \\
 echo \	-itsoffset "${srcDelay}" \\
+echo \	${trim[*]} \\
 echo \	-i $q"${show}"$q \\
+echo \	-filter_complex $sq"amix=inputs=2:duration=longest"$sq \\
 echo \	-filter_complex $sq"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$sq \\
+echo \	-async 1 \\
 echo \	-map 0:a \\
 echo \	${duration[*]} \\
 echo \	$q"$out"$q
@@ -81,8 +144,11 @@ echo ""
 ffmpeg -y -hide_banner -loglevel warning -stats \
 	-i "${reaction}" \
 	-itsoffset "${srcDelay}" \
+	${trim[*]} \
 	-i "${show}" \
+	-filter_complex "amix=inputs=2:duration=longest" \
 	-filter_complex "[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}" \
+	-async 1 \
 	-map 0:a \
 	${duration[*]} \
 	"$out"

@@ -48,6 +48,7 @@ installs=( \
 	docker \
 	ffmpeg \
 	gnumeric \
+	gnu-getopt \
 	jove \
 	jq \
 	libdvdcss \
