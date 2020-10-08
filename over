@@ -9,25 +9,28 @@ usage() {
     exit 0
 }
 
-dry_run=0
+dry_run=false
 srcDelay=0
 duration=""
 location=centre
 end_trim=0
 # spacing between the show and the edge of the screen
-margin=20
+vmargin=0
+hmargin=0
 
 # how big the overlay is
 overlayScale=.5
 
-while getopts hnl:t:e:m:s: opt; do
+while getopts '?'nl:t:e:m:s:h:v: opt; do
     case $opt in
-        h) usage ;;
-        n) dry_run=1 ;;
+        '?') usage ;;
+        n) dry_run=true ;;
 		l) location="${OPTARG}" ;;
 		t) duration=(-t "${OPTARG}") ;;
 		e) end_trim="${OPTARG}" ;;
-		m) margin="${OPTARG}" ;;
+		m) vmargin="${OPTARG}"; hmargin="${OPTARG}" ;;
+		h) hmargin="${OPTARG}" ;;
+		v) vmargin="${OPTARG}" ;;
 		s) overlayScale="${OPTARG}" ;;
     esac
 done
@@ -70,13 +73,14 @@ end_trim=$(echo "${end_trim}" | perl -pe 's#(\d+):(\d+)#$1*60 + $2#e')
 out="${reaction%.*}-Reid.${reaction##*.}"
 echo "##"
 echo "##     show = ${show}"
-echo "##    - duration = ${showDuration} [$((${showSeconds} - end_trim)) s]"
+echo "##       - duration = ${showDuration} [$((${showSeconds} - end_trim)) s]"
 echo "## reaction = ${reaction}"
-echo "##    - duration = ${reactionDuration} [${reactionSeconds} s]"
+echo "##       - duration = ${reactionDuration} [${reactionSeconds} s]"
 echo "##    delay = $srcDelay"
 echo "## location = $location"
 echo "## duration = $duration"
 echo "## end trim = ${end_trim}"
+echo "##  dry run = ${dry_run}"
 echo "##"
 echo "## / out = $out"
 echo ""
@@ -93,16 +97,16 @@ overlayWidth=$((reactionWidth * overlayScale))
 overlayHeight=$((reactionHeight * overlayScale))
 srcScale=$(($overlayWidth / $showWidth))
 case $location in
-	right) hoffset=$((reactionWidth - showWidth*srcScale - $margin)) ;;
-	left) hoffset=$margin ;;
-	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale)) ;;
+	right) hoffset=$((reactionWidth - showWidth*srcScale - $hmargin)) ;;
+	left) hoffset=$hmargin ;;
+	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale + $hmargin)) ;;
 esac
 echo "#        show size: ${showWidth}x${showHeight}: $show"
 echo "#reaction duration: ${reactionDuration} [${reactionSeconds} seconds]"
 echo "#    show duration: ${showDuration} [${showSeconds} seconds]"
 echo "# rection size: ${reactionWidth}x${reactionHeight}: $reaction"
 echo "# overlay size: ${overlayWidth}x${overlayHeight} @ ${overlayScale}X"
-voffset=$((reactionHeight - showHeight*srcScale - $margin))
+voffset=$((reactionHeight - showHeight*srcScale - $vmargin))
 echo "# `date` -- starting @ srcScale = $srcScale (dx=$hoffset, dy=$voffset)]"
 echo ""
 
@@ -140,6 +144,10 @@ echo \	-map 0:a \\
 echo \	${duration[*]} \\
 echo \	$q"$out"$q
 echo ""
+
+if $dry_run; then
+	exit 0
+fi
 
 ffmpeg -y -hide_banner -loglevel warning -stats \
 	-i "${reaction}" \
