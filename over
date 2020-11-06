@@ -4,27 +4,45 @@
 prog=`basename $0`
 
 usage() {
-	echo "Usage: $prog [-h | -n | -l loc | -t dur | -e trim | -m margin | -s scale] reaction show [offset [left/centre/right [duration [trim]]]]"
-	echo "    defaults: reaction show offset=0 'centre' duration=max trim=0"
+	cat <<-EOF
+	Usage: $prog [-? | -n | -l loc | -t dur | -e trim | -m margin | -h hmargin | -v vmargin | -s scale] reaction show [offset [left/centre/right [duration [trim]]]]
+		-?         - show this help
+		-o.        - open output file after completion
+		-n         - show what would happen but do not actually encode
+		-l loc.    - where to put the show at the bottom of the screen: left, center/centre, right
+		-t dur     - how long to clip for (useful for testing to see if you got the offset right)
+		-m margin  - margin at left/bottom/right edges between the show and the edge of the reaction
+		-h hmargin - horizontal margin at left/right edges between the show and the edge of the reaction
+		-v vmargin - vertical margin at bottom edge between the show and the edge of the reaction
+		-s scale.  - the size of the show relative to the reaction (default: 0.5)
+
+	    defaults: $prog -s 0.5 -l center reaction show 0
+
+	EOF
     exit 0
 }
 
 dry_run=false
+open_when_done=false
 srcDelay=0
 duration=""
 location=centre
 end_trim=0
-# spacing between the show and the edge of the screen
+
+## spacing between the show and the edge of the screen
+# vertically
 vmargin=0
+# horizontally
 hmargin=0
 
 # how big the overlay is
 overlayScale=.5
 
-while getopts '?'nl:t:e:m:s:h:v: opt; do
+while getopts '?'nol:t:e:m:s:h:v: opt; do
     case $opt in
         '?') usage ;;
         n) dry_run=true ;;
+		o) open_when_done=true ;;
 		l) location="${OPTARG}" ;;
 		t) duration=(-t "${OPTARG}") ;;
 		e) end_trim="${OPTARG}" ;;
@@ -39,11 +57,13 @@ shift $((OPTIND-1))
 
 echo "## ARGS are" "${@}"
 
+# require at least two arguments: the reaction and the show
 if [ $# -lt 2 ]; then
 	usage
 	exit 1
 fi
 
+# first the reaction, then the show
 reaction="$1"
 show="$2"
 
@@ -85,11 +105,11 @@ echo "##"
 echo "## / out = $out"
 echo ""
 
-reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
+reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep 'Video:.*default' | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
 echo "reactionExpr=$reactionExpr"
 eval "$reactionExpr"
 
-showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep Video: | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
+showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep 'Video:.*default' | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
 echo "showExpr=$showExpr"
 eval "$showExpr"
 
@@ -110,8 +130,8 @@ voffset=$((reactionHeight - showHeight*srcScale - $vmargin))
 echo "# `date` -- starting @ srcScale = $srcScale (dx=$hoffset, dy=$voffset)]"
 echo ""
 
-q='"'
-sq="'"
+qq='"'
+q="'"
 
 # Arguments to -filter_complex for various situations
 # ---------------------------------------------------
@@ -133,16 +153,16 @@ if [ \! -z "$end_trim" ]; then
 fi
 
 echo ffmpeg -y -hide_banner -loglevel warning -stats \\
-echo \	-i $q"${reaction}"$q \\
+echo \	-i $qq"${reaction}"$qq \\
 echo \	-itsoffset "${srcDelay}" \\
 echo \	${trim[*]} \\
-echo \	-i $q"${show}"$q \\
-echo \	-filter_complex $sq"amix=inputs=2:duration=longest"$sq \\
-echo \	-filter_complex $sq"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$sq \\
+echo \	-i $qq"${show}"$qq \\
+echo \	-filter_complex $q"amix=inputs=2:duration=longest"$q \\
+echo \	-filter_complex $q"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$q \\
 echo \	-async 1 \\
 echo \	-map 0:a \\
 echo \	${duration[*]} \\
-echo \	$q"$out"$q
+echo \	$qq"$out"$qq
 echo ""
 
 if $dry_run; then
@@ -160,7 +180,9 @@ ffmpeg -y -hide_banner -loglevel warning -stats \
 	-map 0:a \
 	${duration[*]} \
 	"$out"
-echo "# `date` -- done: $out"
+echo "# `date` -- done: file://$PWD/$(echo $out | sed -e 's/ /%20/g')"
+
+! $dry_run && $open_when_done && open "$out"
 
 # -vf subtitles="${show}"
 # -t 00:10:00 \
