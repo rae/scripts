@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -ws
 # renames screenshots on the desktop that match "Screen Shot 2020-02-02 at 12.34.55.ext" to
 # 2020-02-02.12.34.55.ext
 #
@@ -9,14 +9,29 @@ if(scalar @ARGV > 0) {
 }
 chdir($dir);
 
+print("PWD is ", `pwd`) if $v;
+
 for my $ss (<"Screen Shot*">) {
-	if($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z]+)$/) {
-		my $newname="${1}.${2}${3}.${4}";
+	print("ss-rename: checking \"$ss\"\n");
+	if($ss =~ /Screen Shot (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
+		my $date = $1;
+		my $hour = $2;
+		my $minutes = $3;
+		print("ss-rename: renaming \"$ss\"\n");
+		my $time=$2;
+		if($4 eq " PM") {
+			print("ss-rename: adding 12 hours to $hour,") if $v;
+			$hour += 12;
+			print(" \"$hour\"\n") if $v;
+		}
+		$hour = "0${hour}" if $hour < 10;
+		my $newname="${date}.${hour}${minutes}.${5}";
 		if(-e $newname) {
 			warn "$0: \"$newname\" already exists. skipping $ss\n";
 			next;
 		}
-		rename $ss, $newname;
+		print("ss-rename: renaming to \"$newname\"\n") if $v;
+		rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
 	}
 	elsif($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
 		my $date = $1;
