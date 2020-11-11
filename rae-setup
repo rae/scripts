@@ -16,17 +16,17 @@ BREW_URL="https://raw.githubusercontent.com/Homebrew/install/master/install"
 # cd to $HOME
 cd
 
+if [ ! -r /usr/bin/git ]; then
+	p installing Xcode command line tools
+	xcode-select --install
+fi
+
 if [ ! -r /usr/local/bin/brew ]; then
 	p Setting up homebrew
 	/usr/bin/ruby -e "$(curl -fsSL ${BREW_URL})"
 
 	# bring bash command cache up-to-date with now-installed "brew" command
 	hash -r
-fi
-
-if [ ! -r /usr/bin/git ]; then
-	p installing Xcode command line tools
-	xcode-select --install
 fi
 
 if [ ! -r bin/noarch ]; then
