@@ -105,11 +105,11 @@ echo "##"
 echo "## / out = $out"
 echo ""
 
-reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep 'Video:.*default' | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
+reactionExpr="$(ffmpeg -hide_banner -i "${reaction}" |& grep 'Video:' | head -1 | perl -pe 's/^.* (\d+)x(\d+).*/reactionWidth=${1}; reactionHeight=${2}/')"
 echo "reactionExpr=$reactionExpr"
 eval "$reactionExpr"
 
-showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep 'Video:.*default' | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
+showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep 'Video:' | head -1 | perl -pe 's/^.* (\d+)x(\d+).*/showWidth=${1}; showHeight=${2}/')"
 echo "showExpr=$showExpr"
 eval "$showExpr"
 
@@ -148,7 +148,7 @@ q="'"
 #
 
 trim=()
-if [ \! -z "$end_trim" ]; then
+if [ \! "x${trim}" = "x0" ]; then
 	trim=(-ss 0 -to $(($showSeconds - $end_trim)) )
 fi
 
