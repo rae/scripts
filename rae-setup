@@ -40,7 +40,7 @@ if [ ! -r bin/noarch ]; then
 fi
 
 
-# coretools include GNU ls et al.
+# "coretools" include GNU ls et al.
 installs=( \
 	chocolate-doom \
 	coretools \
@@ -49,12 +49,14 @@ installs=( \
 	ffmpeg \
 	gnumeric \
 	gnu-getopt \
+	gping \
 	jove \
 	jq \
 	libdvdcss \
 	media-info \
 	p7zip \
 	p7zip \
+	speedtest-cli \
 	telnet \
 	wget \
 	youtube-dl \
