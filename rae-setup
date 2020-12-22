@@ -55,7 +55,7 @@ installs=( \
 	libdvdcss \
 	media-info \
 	p7zip \
-	p7zip \
+	qprint \
 	speedtest-cli \
 	telnet \
 	wget \
@@ -114,6 +114,7 @@ casks=(\
 	soundflower \
 	vuescan \
 	vlc \
+	xnviewmp \
 	\
 	asset-catalog-tinkerer \
 	cocoscreator \
