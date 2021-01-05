@@ -22,21 +22,24 @@ chdir($dir);
 
 dd("PWD is ", `pwd`);
 
-for my $ss (<"Screen Shot*">) {
+# Screen Recording 2020-11-19 at 18.13.50.mov
+
+for my $ss (<"Screen *">) {
 	d("ss-rename: checking \"$ss\"");
-	if($ss =~ /Screen Shot (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
-		my $date = $1;
-		my $hour = $2;
-		my $minutes = $3;
+	if($ss =~ /Screen (Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
+		my $date = $2;
+		my $hour = $3;
+		my $minutes = $4;
 		d("ss-rename: renaming \"$ss\"");
-		my $time=$2;
-		if($4 eq " PM") {
+		my $time=$3;
+		my $ext = $6;
+		if(defined $5 && $5 eq " PM") {
 			dd("ss-rename: adding 12 hours to $hour,");
 			$hour += 12;
 			d(" \"$hour\"");
 		}
 		$hour = "0${hour}" if $hour < 10;
-		my $newname="${date}.${hour}${minutes}.${5}";
+		my $newname="${date}.${hour}${minutes}.${ext}";
 		if(-e $newname) {
 			warn "$0: \"$newname\" already exists. skipping $ss\n";
 			next;
@@ -44,19 +47,24 @@ for my $ss (<"Screen Shot*">) {
 		d("ss-rename: renaming to \"$newname\"");
 		rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
 	}
-	elsif($ss =~ /Screen Shot (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
-		my $date = $1;
-		my $hour = $2;
-		my $minsec = $3;
-		my $extra = $5;
-		my $ext = $6;
-		$hour += 12 if $4 =~ /[Pp][Mm]/;
+	elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
+		my $date = $2;
+		my $hour = $3;
+		my $minsec = $4;
+		my $extra = $6;
+		my $ext = $7;
+		$hour += 12 if $5 =~ /[Pp][Mm]/;
 		my $newname="${date}.${hour}${minsec}${extra}.${ext}";
 		if(-e $newname) {
 			warn "$0: \"$newname\" already exists. skipping $ss\n";
 			next;
 		}
+		d("ss-rename: renaming \"$ss\"");
+		d("ss-rename: to \"$newname\"");
 		rename $ss, $newname;
+	}
+	else {
+		d("No match: \"$ss\"");
 	}
 }
 
