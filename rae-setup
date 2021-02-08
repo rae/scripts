@@ -21,7 +21,7 @@ if [ ! -r /usr/bin/git ]; then
 	xcode-select --install
 fi
 
-if [ ! -r /usr/local/bin/brew ]; then
+if [ ! -r /usr/local/bin/brew -a ! -r /opt/homebrew/bin/brew ]; then
 	p Setting up homebrew
 	/usr/bin/ruby -e "$(curl -fsSL ${BREW_URL})"
 
