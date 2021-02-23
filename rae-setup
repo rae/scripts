@@ -86,6 +86,7 @@ casks=(\
 	go2shell \
 	google-hangouts \
 	iterm2 \
+	publish \
 	signal \
 	skype \
 	slack \
@@ -165,8 +166,14 @@ casks=(\
 )
 
 for cask in ${casks[*]}; do
-	echo # `date` -- installing $cask
-	brew cask install -q "$cask" || echo "## cask $cask failed"
+	echo "# `date` -- installing $cask"
+	brew install -q "$cask" || echo "## cask $cask failed"
+done
+
+# might have to do this for the above?
+for newcask in ipfs; do
+echo "# `date` -- cask-installing $cask"
+	brew install homebrew/cask/${newcask}
 done
 
 p Setting up macOS
