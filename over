@@ -9,12 +9,14 @@ usage() {
 		-?         - show this help
 		-o.        - open output file after completion
 		-n         - show what would happen but do not actually encode
-		-l loc.    - where to put the show at the bottom of the screen: left, center/centre, right
+		-l loc     - where to put the show at the bottom of the screen: left, center/centre, right
 		-t dur     - how long to clip for (useful for testing to see if you got the offset right)
 		-m margin  - margin at left/bottom/right edges between the show and the edge of the reaction
 		-h hmargin - horizontal margin at left/right edges between the show and the edge of the reaction
 		-v vmargin - vertical margin at bottom edge between the show and the edge of the reaction
-		-s scale.  - the size of the show relative to the reaction (default: 0.5)
+		-s scale   - the size of the show relative to the reaction (default: 0.5)
+		-e dur     - how many seconds to trim off the end of the movie
+		-b dur     - how many seconds to trim off the beginning of the reaction?
 
 	    defaults: $prog -s 0.5 -l center reaction show 0
 
@@ -27,7 +29,9 @@ open_when_done=false
 srcDelay=0
 duration=""
 location=centre
+start_trim=0
 end_trim=0
+play_time=0
 
 ## spacing between the show and the edge of the screen
 # vertically
@@ -38,14 +42,15 @@ hmargin=0
 # how big the overlay is
 overlayScale=.5
 
-while getopts '?'nol:t:e:m:s:h:v: opt; do
+while getopts '?'nol:t:e:b:m:s:h:v: opt; do
     case $opt in
         '?') usage ;;
         n) dry_run=true ;;
 		o) open_when_done=true ;;
 		l) location="${OPTARG}" ;;
-		t) duration=(-t "${OPTARG}") ;;
+		t) duration=(-t "${OPTARG}"); play_time="${OPTARG}" ;;
 		e) end_trim="${OPTARG}" ;;
+		b) start_trim="${OPTARG}" ;;
 		m) vmargin="${OPTARG}"; hmargin="${OPTARG}" ;;
 		h) hmargin="${OPTARG}" ;;
 		v) vmargin="${OPTARG}" ;;
@@ -89,6 +94,8 @@ showSeconds=$(echo "${showDuration}" | perl -pe 's#(\d+):(\d+):(\d+)\.(\d+)#$4/1
 
 # convert min:sec to seconds if it's formatted that way
 end_trim=$(echo "${end_trim}" | perl -pe 's#(\d+):(\d+)#$1*60 + $2#e')
+start_trim=$(echo "${start_trim}" | perl -pe 's#(\d+):(\d+)#$1*60 + $2#e')
+play_time=$(echo "${play_time}" | perl -pe 's#(\d+):(\d+)#$1*60 + $2#e')
 
 out="${reaction%.*}-Reid.${reaction##*.}"
 echo "##"
@@ -99,6 +106,7 @@ echo "##       - duration = ${reactionDuration} [${reactionSeconds} s]"
 echo "##    delay = $srcDelay"
 echo "## location = $location"
 echo "## duration = $duration"
+echo "## beg trim = ${start_trim}"
 echo "## end trim = ${end_trim}"
 echo "##  dry run = ${dry_run}"
 echo "##"
@@ -147,15 +155,19 @@ q="'"
 #	[a]adelay=2000|2000[a];[a][b]amix=inputs=2:dropout_transition=0
 #
 
-trim=()
-if [ \! "x${trim}" = "x0" ]; then
-	trim=(-ss 0 -to $(($showSeconds - $end_trim)) )
+if ((end_trim != 0 || start_trim != 0)); then
+	if ((end_trim != 0)); then
+		duration=(-ss $start_trim -to $(($showSeconds - $end_trim)))
+	elif ((play_time != 0)); then
+		duration=(-ss $start_trim -to $((play_time)))
+	else
+		duration=(-ss $start_trim -to $showSeconds)
+	fi
 fi
 
 echo ffmpeg -y -hide_banner -loglevel warning -stats \\
 echo \	-i $qq"${reaction}"$qq \\
 echo \	-itsoffset "${srcDelay}" \\
-echo \	${trim[*]} \\
 echo \	-i $qq"${show}"$qq \\
 echo \	-filter_complex $q"amix=inputs=2:duration=longest"$q \\
 echo \	-filter_complex $q"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$q \\
