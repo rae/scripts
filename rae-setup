@@ -11,7 +11,7 @@ p() {
     echo "$(date) -- $*"
 }
 
-BREW_URL="https://raw.githubusercontent.com/Homebrew/install/master/install"
+BREW_URL="https://raw.githubusercontent.com/Homebrew/install/master/install.sh"
 
 # cd to $HOME
 cd
@@ -23,9 +23,8 @@ fi
 
 if [ ! -r /usr/local/bin/brew -a ! -r /opt/homebrew/bin/brew ]; then
 	p Setting up homebrew
-	/usr/bin/ruby -e "$(curl -fsSL ${BREW_URL})"
-
-	# bring bash command cache up-to-date with now-installed "brew" command
+	/bin/bash -c "$(curl -fsSL ${BREW_URL})"
+	# update hash
 	hash -r
 fi
 
@@ -60,6 +59,8 @@ installs=( \
 	telnet \
 	wget \
 	youtube-dl \
+	\
+	publish \
 )
 p installing $installs
 brew install $installs
@@ -75,18 +76,20 @@ p installing various casks to /Applications
 casks=(\
 	atom \
 	qlmarkdown \
-	WebPQuickLook \
+	webpquicklook \
 	sublime-text \
 	textmate \
 	\
-	colloquy \
+	brave-browser \
 	betterzip \
 	discord \
+	firefox \
 	franz \
 	go2shell \
+	google-chrome \
 	google-hangouts \
+	ipfs \
 	iterm2 \
-	publish \
 	signal \
 	skype \
 	slack \
@@ -104,15 +107,16 @@ casks=(\
 	zenmap \
 	\
 	4k-video-downloader \
+	audio-hijack \
 	blender \
 	freac \
 	handbrake \
 	krita \
 	linein \
+	loopback \
 	makemkv \
 	qlvideo \
 	soundcloud-downloader \
-	soundflower \
 	vuescan \
 	vlc \
 	xnviewmp \
@@ -140,7 +144,6 @@ casks=(\
 	fission \
 	gnucash \
 	geotag \
-	geotagger \
 	hockey \
 	iswiff \
 	keybase \
@@ -166,14 +169,8 @@ casks=(\
 )
 
 for cask in ${casks[*]}; do
-	echo "# `date` -- installing $cask"
-	brew install -q "$cask" || echo "## cask $cask failed"
-done
-
-# might have to do this for the above?
-for newcask in ipfs; do
-echo "# `date` -- cask-installing $cask"
-	brew install homebrew/cask/${newcask}
+	echo "# `date` -- installing cask $cask"
+	brew install homebrew/cask/"$cask" || echo "## cask $cask failed"
 done
 
 p Setting up macOS
