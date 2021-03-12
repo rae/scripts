@@ -75,10 +75,12 @@ export HOMEBREW_NO_AUTO_UPDATE=1
 p installing various casks to /Applications
 casks=(\
 	atom \
+	calibre \
 	qlmarkdown \
 	webpquicklook \
 	sublime-text \
 	textmate \
+	typora \
 	\
 	brave-browser \
 	betterzip \
