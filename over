@@ -14,6 +14,8 @@ usage() {
 		-m margin  - margin at left/bottom/right edges between the show and the edge of the reaction
 		-h hmargin - horizontal margin at left/right edges between the show and the edge of the reaction
 		-v vmargin - vertical margin at bottom edge between the show and the edge of the reaction
+		+h hborder - horizontal border
+		+v vborder - vertical border
 		-s scale   - the size of the show relative to the reaction (default: 0.5)
 		-e dur     - how many seconds to trim off the end of the movie
 		-b dur     - how many seconds to trim off the beginning of the reaction?
@@ -36,8 +38,10 @@ play_time=0
 ## spacing between the show and the edge of the screen
 # vertically
 vmargin=0
+vborder=0
 # horizontally
 hmargin=0
+hborder=0
 
 # how big the overlay is
 overlayScale=.5
@@ -54,6 +58,8 @@ while getopts '?'nol:t:e:b:m:s:h:v: opt; do
 		m) vmargin="${OPTARG}"; hmargin="${OPTARG}" ;;
 		h) hmargin="${OPTARG}" ;;
 		v) vmargin="${OPTARG}" ;;
+		+h) hborder="${OPTARG}" ;;
+		+v) vborder="${OPTARG}" ;;
 		s) overlayScale="${OPTARG}" ;;
     esac
 done
@@ -165,12 +171,25 @@ if ((end_trim != 0 || start_trim != 0)); then
 	fi
 fi
 
+filter='amix=inputs=2:duration=longest;'
+toScale='[1]'
+if ((hborder != 0 || vborder != 0)); then
+	((totalHeight = showHeight + 2*vborder))
+	((totalWidth = showWidth + 2*hborder))
+	filter="${filter} [1] pad=${totalWidth}:${totalHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1 [bordered];"
+	toScale='[bordered]'
+fi
+
+filter="${filter}
+	${toScale} scale=iw*${srcScale}:-1 [scaled]; 
+	[0][scaled] overlay=${hoffset}:${voffset}"
+
 echo ffmpeg -y -hide_banner -loglevel warning -stats \\
 echo \	-i $qq"${reaction}"$qq \\
 echo \	-itsoffset "${srcDelay}" \\
 echo \	-i $qq"${show}"$qq \\
-echo \	-filter_complex $q"amix=inputs=2:duration=longest"$q \\
-echo \	-filter_complex $q"[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}"$q \\
+echo \	-filter_complex $q"$filter \\
+"$q \\
 echo \	-async 1 \\
 echo \	-map 0:a \\
 echo \	${duration[*]} \\
@@ -186,13 +205,12 @@ ffmpeg -y -hide_banner -loglevel warning -stats \
 	-itsoffset "${srcDelay}" \
 	${trim[*]} \
 	-i "${show}" \
-	-filter_complex "amix=inputs=2:duration=longest" \
-	-filter_complex "[1] scale=iw*${srcScale}:-1 [scaled]; [0][scaled] overlay=${hoffset}:${voffset}" \
+	-filter_complex "${filter}" \
 	-async 1 \
 	-map 0:a \
 	${duration[*]} \
 	"$out"
-echo "# `date` -- done: file://$PWD/$(echo $out | sed -e 's/ /%20/g')"
+echo "# `date` -- done: $(echo "file://${PWD}/${out}" | sed -e 's/ /%20/g')"
 
 ! $dry_run && $open_when_done && open "$out"
 
