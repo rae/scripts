@@ -37,11 +37,11 @@ play_time=0
 
 ## spacing between the show and the edge of the screen
 # vertically
-vmargin=0
-vborder=0
+integer vmargin=0
+integer vborder=0
 # horizontally
-hmargin=0
-hborder=0
+integer hmargin=0
+integer hborder=0
 
 # how big the overlay is
 overlayScale=.5
@@ -115,6 +115,7 @@ echo "## duration = $duration"
 echo "## beg trim = ${start_trim}"
 echo "## end trim = ${end_trim}"
 echo "##  dry run = ${dry_run}"
+echo "##  borders = h: $hborder / v: $vborder"
 echo "##"
 echo "## / out = $out"
 echo ""
@@ -130,10 +131,12 @@ eval "$showExpr"
 overlayWidth=$((reactionWidth * overlayScale))
 overlayHeight=$((reactionHeight * overlayScale))
 srcScale=$(($overlayWidth / $showWidth))
+integer hoffset
+integer voffset
 case $location in
-	right) hoffset=$((reactionWidth - showWidth*srcScale - $hmargin)) ;;
+	right) hoffset=$((reactionWidth - showWidth*srcScale - $hmargin + 0.1)) ;;
 	left) hoffset=$hmargin ;;
-	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale + $hmargin)) ;;
+	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale + $hmargin + 0.1)) ;;
 esac
 echo "#        show size: ${showWidth}x${showHeight}: $show"
 echo "#reaction duration: ${reactionDuration} [${reactionSeconds} seconds]"
@@ -171,25 +174,23 @@ if ((end_trim != 0 || start_trim != 0)); then
 	fi
 fi
 
-filter='amix=inputs=2:duration=longest;'
-toScale='[1]'
-if ((hborder != 0 || vborder != 0)); then
-	((totalHeight = showHeight + 2*vborder))
-	((totalWidth = showWidth + 2*hborder))
-	filter="${filter} [1] pad=${totalWidth}:${totalHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1 [bordered];"
-	toScale='[bordered]'
-fi
+((totalHeight = showHeight + 2*vborder))
+((totalWidth = showWidth + 2*hborder))
 
-filter="${filter}
-	${toScale} scale=iw*${srcScale}:-1 [scaled]; 
-	[0][scaled] overlay=${hoffset}:${voffset}"
+filter=$(
+	cat <<-EOF
+		amix=inputs=2:duration=longest;
+		[1] pad=${totalWidth}:${totalHeight}:(ow-iw)/2:(oh-ih)/2,setsar=1 [bordered];
+		[bordered] scale=iw*${srcScale}:-1 [scaled];
+		[0][scaled] overlay=${hoffset}:${voffset}
+	EOF
+)
 
 echo ffmpeg -y -hide_banner -loglevel warning -stats \\
 echo \	-i $qq"${reaction}"$qq \\
 echo \	-itsoffset "${srcDelay}" \\
 echo \	-i $qq"${show}"$qq \\
-echo \	-filter_complex $q"$filter \\
-"$q \\
+echo \	-filter_complex $q"$filter"$q \\
 echo \	-async 1 \\
 echo \	-map 0:a \\
 echo \	${duration[*]} \\
