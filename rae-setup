@@ -42,19 +42,26 @@ fi
 # "coretools" include GNU ls et al.
 installs=( \
 	chocolate-doom \
+	cmake \
 	coretools \
 	cvs \
 	docker \
 	ffmpeg \
+	github \
 	gnumeric \
 	gnu-getopt \
 	gping \
+	internetarchive \
 	jove \
 	jq \
 	libdvdcss \
 	media-info \
+	mkvtoolnix \
+	ncftp \
+	npm \
 	p7zip \
 	qprint \
+	rar \
 	speedtest-cli \
 	telnet \
 	wget \
@@ -92,9 +99,11 @@ casks=(\
 	google-hangouts \
 	ipfs \
 	iterm2 \
+	qview \
 	signal \
 	skype \
 	slack \
+	soundflower \
 	steam \
 	telegram \
 	tor-browser \
@@ -111,12 +120,14 @@ casks=(\
 	4k-video-downloader \
 	audio-hijack \
 	blender \
+	calibre \
 	freac \
 	handbrake \
 	krita \
 	linein \
 	loopback \
 	makemkv \
+	openshot-video-editor \
 	qlvideo \
 	soundcloud-downloader \
 	vuescan \
