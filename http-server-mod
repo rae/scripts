@@ -118,7 +118,7 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         """
         def noDots(str):
-            return not (str.startswith(".") or str.endswith(".srt") or str.endswith(".sub") or str.endswith(".idx"))
+            return not (str.startswith(".") or str.startswith("#") or str.endswith(".srt") or str.endswith(".sub") or str.endswith(".idx"))
 
         try:
             paths = os.listdir(path)
