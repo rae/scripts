@@ -24,7 +24,8 @@ dd("PWD is ", `pwd`);
 
 # Screen Recording 2020-11-19 at 18.13.50.mov
 
-for my $ss (<"Screen *">) {
+for my $ss (<"*">) {
+	my $newname="";
 	d("ss-rename: checking \"$ss\"");
 	if($ss =~ /Screen (Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
 		my $date = $2;
@@ -39,7 +40,7 @@ for my $ss (<"Screen *">) {
 			d(" \"$hour\"");
 		}
 		$hour = "0${hour}" if $hour < 10;
-		my $newname="${date}.${hour}${minutes}.${ext}";
+		$newname="${date}.${hour}${minutes}.${ext}";
 		if(-e $newname) {
 			warn "$0: \"$newname\" already exists. skipping $ss\n";
 			next;
@@ -54,18 +55,26 @@ for my $ss (<"Screen *">) {
 		my $extra = $6;
 		my $ext = $7;
 		$hour += 12 if $5 =~ /[Pp][Mm]/;
-		my $newname="${date}.${hour}${minsec}${extra}.${ext}";
-		if(-e $newname) {
-			warn "$0: \"$newname\" already exists. skipping $ss\n";
-			next;
-		}
-		d("ss-rename: renaming \"$ss\"");
-		d("ss-rename: to \"$newname\"");
-		rename $ss, $newname;
+		$newname="${date}.${hour}${minsec}${extra}.${ext}";
+	}
+	elsif($ss =~ /vlcsnap-(\d\d\d\d-\d\d-\d\d)-(\d\d)h(\d\d)m(\d\d)s(\d\d\d)\.([a-z]+)$/i) {
+		my $date = $1;
+		my $hour = $2;
+		my $min = $3;
+		my $sec = $4;
+		my $ms = $5;
+		my $ext = $6;
+		$newname="${date}.${hour}${min}.${sec}.${ms}.$ext";
 	}
 	else {
-		d("No match: \"$ss\"");
+		next;
 	}
+	if(-e $newname) {
+		warn "$0: \"$newname\" already exists. skipping $ss\n";
+		next;
+	}
+	d("ss-rename: \"$ss\" => \"$newname\"");
+	rename $ss, $newname;
 }
 
 # Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
