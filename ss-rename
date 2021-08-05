@@ -1,7 +1,8 @@
 #!/usr/bin/perl -ws
 # renames screenshots on the desktop to 2020-02-02.1234.55.ext
 #
-my $dir = "$ENV{HOME}/Desktop";
+# my $dir = "$ENV{HOME}/Desktop";
+my @dirs = ("$ENV{HOME}/Desktop", "$ENV{HOME}/Pictures");
 
 sub d(@) {
 	return unless $v;
@@ -18,73 +19,81 @@ if(scalar @ARGV > 0) {
 	$dir = $ARGV[0];
 	shift;
 }
-chdir($dir);
 
-dd("PWD is ", `pwd`);
+sub ssrename($) {
+	my $dir = shift;
+	chdir($dir);
 
-# Screen Recording 2020-11-19 at 18.13.50.mov
+	dd("PWD is ", `pwd`);
 
-for my $ss (<"*">) {
-	my $newname="";
-	d("ss-rename: checking \"$ss\"");
-	if($ss =~ /Screen (Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
-		my $date = $2;
-		my $hour = $3;
-		my $minutes = $4;
-		d("ss-rename: renaming \"$ss\"");
-		my $time=$3;
-		my $ext = $6;
-		if(defined $5 && $5 eq " PM") {
-			dd("ss-rename: adding 12 hours to $hour,");
-			$hour += 12;
-			d(" \"$hour\"");
+	# Screen Recording 2020-11-19 at 18.13.50.mov
+
+	for my $ss (<"*">) {
+		my $newname="";
+		d("ss-rename: checking \"$ss\"");
+		if($ss =~ /Screen (Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
+			my $date = $2;
+			my $hour = $3;
+			my $minutes = $4;
+			d("ss-rename: renaming \"$ss\"");
+			my $time=$3;
+			my $ext = $6;
+			if(defined $5 && $5 eq " PM") {
+				dd("ss-rename: adding 12 hours to $hour,");
+				$hour += 12;
+				d(" \"$hour\"");
+			}
+			$hour = "0${hour}" if $hour < 10;
+			$newname="${date}.${hour}${minutes}.${ext}";
+			if(-e $newname) {
+				warn "$0: \"$newname\" already exists. skipping $ss\n";
+				next;
+			}
+			d("ss-rename: renaming to \"$newname\"");
+			rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
 		}
-		$hour = "0${hour}" if $hour < 10;
-		$newname="${date}.${hour}${minutes}.${ext}";
-		if(-e $newname) {
-			warn "$0: \"$newname\" already exists. skipping $ss\n";
+		elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
+			my $date = $2;
+			my $hour = $3;
+			my $minsec = $4;
+			my $extra = $6;
+			my $ext = $7;
+			$hour += 12 if $5 =~ /[Pp][Mm]/;
+			$newname="${date}.${hour}${minsec}${extra}.${ext}";
+		}
+		elsif($ss =~ /vlcsnap-(\d\d\d\d-\d\d-\d\d)-(\d\d)h(\d\d)m(\d\d)s(\d\d\d)\.([a-z]+)$/i) {
+			my $date = $1;
+			my $hour = $2;
+			my $min = $3;
+			my $sec = $4;
+			my $ms = $5;
+			my $ext = $6;
+			$newname="${date}.${hour}${min}.${sec}.${ms}.$ext";
+		}
+		else {
 			next;
 		}
-		d("ss-rename: renaming to \"$newname\"");
-		rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
-	}
-	elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
-		my $date = $2;
-		my $hour = $3;
-		my $minsec = $4;
-		my $extra = $6;
-		my $ext = $7;
-		$hour += 12 if $5 =~ /[Pp][Mm]/;
-		$newname="${date}.${hour}${minsec}${extra}.${ext}";
-	}
-	elsif($ss =~ /vlcsnap-(\d\d\d\d-\d\d-\d\d)-(\d\d)h(\d\d)m(\d\d)s(\d\d\d)\.([a-z]+)$/i) {
-		my $date = $1;
-		my $hour = $2;
-		my $min = $3;
-		my $sec = $4;
-		my $ms = $5;
-		my $ext = $6;
-		$newname="${date}.${hour}${min}.${sec}.${ms}.$ext";
-	}
-	else {
-		next;
-	}
-	if(-e $newname) {
-		warn "$0: \"$newname\" already exists. skipping $ss\n";
-		next;
-	}
-	d("ss-rename: \"$ss\" => \"$newname\"");
-	rename $ss, $newname;
-}
-
-# Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
-for my $ss (<"Simulator Screen Shot*">) {
-	if($ss =~ /Simulator Screen Shot - (.*) - (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z][a-z][a-z])/) {
-		my $newname="simulator.${2}.${3}${4}.${1}.${5}";
 		if(-e $newname) {
-			warn "$0: \"$newname\" already exists. skipping $ss\n";
+			d("$0: \"$newname\" already exists. skipping $ss");
 			next;
 		}
+		d("ss-rename: \"$ss\" => \"$newname\"");
 		rename $ss, $newname;
 	}
+
+	# Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
+	for my $ss (<"Simulator Screen Shot*">) {
+		if($ss =~ /Simulator Screen Shot - (.*) - (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z][a-z][a-z])/) {
+			my $newname="simulator.${2}.${3}${4}.${1}.${5}";
+			if(-e $newname) {
+				warn "$0: \"$newname\" already exists. skipping $ss\n";
+				next;
+			}
+			rename $ss, $newname;
+		}
+	}
+}
+
+foreach $dir (@dirs) {
+	ssrename $dir;
 }
