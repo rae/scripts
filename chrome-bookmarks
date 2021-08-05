@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+my $home = $ENV{"HOME"};
+open(PIPE, "chrome-timestamp-parse < \"${home}/Library/Application Support/Google/Chrome/Default/Bookmarks\"|")
+|| die "Cannot run \"chrome-timestamp-parse\": $!\n";
+my $date="";
+while(<PIPE>) {
+	if(/"date_added": "(\d\d\d\d-\d\d-\d\d) (\d\d\d\d\.\d\d)/) {
+		$date="${1}.${2}";
+	}
+	if(m#"name": "(.*)",#) {
+		print ("${date}: $1\n");
+	}
+}
