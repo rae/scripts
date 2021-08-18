@@ -44,7 +44,7 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Serve a GET request."""
-        f = self.send_head()
+        f = self.send_html()
         if f:
             try:
                 self.copyfile(f, self.wfile)
@@ -53,11 +53,11 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         """Serve a HEAD request."""
-        f = self.send_head()
+        f = self.send_html()
         if f:
             f.close()
 
-    def send_head(self):
+    def send_html(self):
         """Common code for GET and HEAD commands.
 
         This sends the response code and MIME headers.
@@ -114,7 +114,7 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         Return value is either a file object, or None (indicating an
         error).  In either case, the headers are sent, making the
-        interface the same as for send_head().
+        interface the same as for send_html().
 
         """
         def noDots(str):
