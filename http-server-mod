@@ -20,6 +20,7 @@ import cgi
 import sys
 import shutil
 import mimetypes
+import re
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -67,7 +68,6 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         None, in which case the caller has nothing further to do.
 
         """
-        # os.chdir("/Volumes/media")
         path = self.translate_path(self.path)
         f = None
         if os.path.isdir(path):
@@ -222,8 +222,8 @@ p {
             if os.path.islink(fullname):
                 displayname = displayname + "@"
                 # Note: a link to a directory displays with @ and links with /
-            f.write('<p%s><code>%s<a href="%s">%s</a></code></p>\n'
-                    % (classStr, sizeStr, urllib.quote(linkname), cgi.escape(displayname)))
+            f.write('<p%s><code>%s%s</code></p>\n'
+                    % (classStr, sizeStr, self.pretty(urllib.quote(linkname), displayname)))
         f.write("</body>\n</html>\n")
         length = f.tell()
         f.seek(0)
@@ -299,6 +299,17 @@ p {
             return self.extensions_map[ext]
         else:
             return self.extensions_map['']
+
+    def pretty(self, link, name):
+        newName = name
+        pattern = re.compile(r'^(.*)\.(\d\d\d\d)\.(.*)\.\w+$')
+        if pattern.match(name):
+            sub = pattern.search(name)
+            newName = ("<a href=\"%s\">%s (%s) <span class=\"info\">%s</span></a>"
+                % (link, cgi.escape(sub.group(1)), cgi.escape(sub.group(2)), cgi.escape(sub.group(3))))
+        else:
+            newName = "<a href=\"%s\">%s</a>" % (link, name)
+        return newName
 
     if not mimetypes.inited:
         mimetypes.init() # try to read system mime.types
