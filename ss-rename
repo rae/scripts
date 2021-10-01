@@ -38,9 +38,13 @@ sub ssrename($) {
 			d("ss-rename: renaming \"$ss\"");
 			my $time=$3;
 			my $ext = $6;
-			if(defined $5 && $5 eq " PM") {
+			if(defined $5 && $5 eq " PM" && $hour < 12) {
 				dd("ss-rename: adding 12 hours to $hour,");
 				$hour += 12;
+				d(" \"$hour\"");
+			} elsif(defined $5 && $5 eq " AM" && $hour == 12) {
+				dd("ss-rename: using 00 for midnight, ");
+				$hour -= 12;
 				d(" \"$hour\"");
 			}
 			$hour = "0${hour}" if $hour < 10;
