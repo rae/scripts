@@ -1,0 +1,38 @@
+#!/bin/bash
+
+RCFILE=~/.comic-dl
+if [ ! -r $RCFILE ]; then
+	echo -n "Username: ";
+	read username
+	echo -n "Password: "
+	read -s password
+	echo "username=$q$username$q; password=$q$password$q" > "$RCFILE"
+else
+	. $RCFILE
+fi
+
+cleanup() {
+	echo "## title interrupt"
+	exit 1	
+}
+
+trap 'cleanup' INT
+
+if [ $# = 0 ]; then
+    cat <<-EOF
+
+	Usage: title-dl url
+	- url is from https://readcomiconline.li
+
+EOF
+	exit 0
+fi
+
+for titleURL; do
+	baseURL=$(echo "$titleURL" | perl -pe 's#^(\w+://[^/]*)/.*#$1#')
+	curl --silent -u "${username}:${password}" "$titleURL" \
+	| perl -ne 'm#<li><a[     ]*href="(.*)"><span>(.*)</span># && print "${1}\n"' \
+	| while read url; do
+		comic-dl "${baseURL}${url}"
+	done
+done
