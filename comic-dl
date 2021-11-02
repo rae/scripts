@@ -1,0 +1,85 @@
+#!/bin/bash
+
+TMPDIR=$(mktemp -d -t comic-dl)
+q='""'
+
+parseTitle() {
+	echo "$1" | perl -pe 's#^.*/Comic/(.*)/Issue.*#$1#'
+}
+
+parseIssue() {
+	echo "$1" | perl -pe 's#^.*/Issue-(\d+).*#$1#'
+}
+
+download() {
+    # check for valid arguments
+    if [ $# -lt 3 ]; then
+        echo "Usage: download url title issue"
+        return
+    fi
+	url="$1"
+	title="$2"
+	issue=$(printf "%03d" $3)
+	page=1
+	echo -n "$title #${3}: "
+	curl --silent --location -u '${username}:${password}' "${url}" \
+	| perl -ne 'if(/lstImages.push\("(.*)"\)/) { print "$1\n" }' \
+	| while read url; do
+		echo "url=$url"
+		pageStr=$(printf "%04d" $page)
+		curl --silent "${url//[$'\t\r\n']}" -o "${TMPDIR}/${title}.${issue}.${pageStr}.jpg"
+		echo -n "[$page]"
+		((page++))
+	done
+	echo ""
+	if [ $page -lt 2 ]; then
+		echo "Not enough pages? - $title.$issue $url"
+	else
+		# don't specify ".jpg" since it might be .png or .gif or whatever
+		zip -q "$title.$issue.cbz" "${TMPDIR}/$title.$issue."[0-9][0-9]*.* && rm "${TMPDIR}/$title.$issue."[0-9][0-9]*.*
+	fi
+}
+
+cleanup() {
+	rm -rf "${TMPDIR}"
+	echo "## issue interrupt"
+	exit 1	
+}
+
+RCFILE=~/.comic-dl
+if [ ! -r $RCFILE ]; then
+	echo -n "Username: ";
+	read username
+	echo -n "Password: "
+	read -s password
+	echo "username=$q$username$q; password=$q$password$q" > "$RCFILE"
+else
+	. $RCFILE
+fi
+
+trap 'cleanup' INT
+
+if [ $# = 0 ]; then
+    cat <<-EOF
+
+	Usage: comic-dl url
+	- url is from https://readcomiconline.li
+
+EOF
+	exit 0
+fi
+
+
+for url; do
+	title=$(parseTitle "$url")
+	issue=$(parseIssue "$url")
+	issueString=$(printf "%03d" $issue)
+	filename="$title.$issueString.cbz"
+	if [ -r "$filename" ]; then
+		echo "Skipping $filename (exists)"
+	else
+		download "$url" "$title" "$issue" && sleep 2
+	fi
+done
+
+rm -rf "${TMPDIR}"
