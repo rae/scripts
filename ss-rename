@@ -18,6 +18,7 @@ sub dd(@) {
 if(scalar @ARGV > 0) {
 	$dir = $ARGV[0];
 	shift;
+	@dirs=($dir)
 }
 
 sub ssrename($) {
@@ -56,16 +57,19 @@ sub ssrename($) {
 			d("ss-rename: renaming to \"$newname\"");
 			rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
 		}
-		elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm)(.*)\.([a-z]+)$/i) {
+		elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
+			d("Found Screen $1");
 			my $date = $2;
 			my $hour = $3;
 			my $minsec = $4;
 			my $extra = $6;
 			my $ext = $7;
-			$hour += 12 if $5 =~ /[Pp][Mm]/;
+			my $ampm = lc $5;
+			$hour += 12 if $ampm eq "pm";
 			$newname="${date}.${hour}${minsec}${extra}.${ext}";
 		}
 		elsif($ss =~ /vlcsnap-(\d\d\d\d-\d\d-\d\d)-(\d\d)h(\d\d)m(\d\d)s(\d\d\d)\.([a-z]+)$/i) {
+			d("Found vlcsnap-$1");
 			my $date = $1;
 			my $hour = $2;
 			my $min = $3;
