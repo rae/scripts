@@ -27,6 +27,9 @@ except ImportError:
     from StringIO import StringIO
 
 
+# Reid's API key
+tmdbAPIKey = "3d801b6df71aa2ccd644d6dc38ec53ce"
+
 class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     """Simple HTTP request handler with GET and HEAD commands.
@@ -117,12 +120,17 @@ class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         interface the same as for send_html().
 
         """
-        def noDots(str):
-            return not (str.startswith(".") or str.startswith("#") or str.endswith(".srt") or str.endswith(".sub") or str.endswith(".idx"))
+        def uninteresting(str):
+            return not (
+                # strip out temporary files, dot files, subtitles and executables
+                str.startswith("#") or str.startswith(".") or str.endswith(".srt")
+                or str.endswith(".sub") or str.endswith(".idx") or str.endswith(".txt")
+                or str.endswith(".vtt") or str.endswith(".exe")
+            )
 
         try:
             paths = os.listdir(path)
-            paths = filter(noDots, paths)
+            paths = filter(uninteresting, paths)
             paths = [path + file for file in paths]
             paths = sorted(paths, key=os.path.getmtime, reverse=True)
         except os.error:
@@ -182,6 +190,12 @@ p {
     text-indent: -4em;
     margin-left: 4em;
 }
+.info {
+    font-size: 0.6em;
+    color: #800;
+    font-family: palatino helvetica;
+    font-style: italic;
+}
 .dir {
     font-size: 3em;
     font-family: palatino helvetica;
@@ -195,6 +209,8 @@ p {
         for name in paths:
             fullname = os.path.join(path, name)
             displayname = linkname = name
+            # callthis on `urllib.quote(displayname)`?
+            # https://api.themoviedb.org/3/search/movie?api_key=3d801b6df71aa2ccd644d6dc38ec53ce&query=%s
             size = os.stat(fullname).st_size
             sizeStr = "{} bytes".format(size, "d")
             k=1000.0
@@ -305,7 +321,7 @@ p {
         pattern = re.compile(r'^(.*)\.(\d\d\d\d)\.(.*)\.\w+$')
         if pattern.match(name):
             sub = pattern.search(name)
-            newName = ("<a href=\"%s\">%s (%s) <span class=\"info\">%s</span></a>"
+            newName = ("<a href=\"%s\">%s (%s)</a> <span class=\"info\">%s</span>"
                 % (link, cgi.escape(sub.group(1)), cgi.escape(sub.group(2)), cgi.escape(sub.group(3))))
         else:
             newName = "<a href=\"%s\">%s</a>" % (link, name)
