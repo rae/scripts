@@ -11,7 +11,7 @@ p() {
     echo "$(date) -- $*"
 }
 
-BREW_URL="https://raw.githubusercontent.com/Homebrew/install/master/install.sh"
+BREW_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
 # cd to $HOME
 cd
