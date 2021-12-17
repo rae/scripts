@@ -89,6 +89,7 @@ casks=(\
 	textmate \
 	typora \
 	\
+	authy \
 	brave-browser \
 	betterzip \
 	discord \
