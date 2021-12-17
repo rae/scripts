@@ -1,0 +1,57 @@
+#!/bin/bash
+
+labels=(SDH FOREIGN)
+
+if [ ! -d [Ss][Uu][Bb][Ss] ]; then
+	cat <<-EOF
+	#
+	# rnsubs: no such directory: 'Subs'
+	#    
+	#    rnsubs is means for a directory structure like:
+	#    - file1
+	#    - file2
+	#
+	#    - Subs/file1/2_English.srt
+	#    - Subs/file1/3_English.srt
+	#
+	#    - Subs/file2/2_English.srt
+	#    - Subs/file2/3_English.srt
+	#    - Subs/file2/4_English.srt
+	#    - Subs/file2/5_English.srt
+	#    
+	#    When run in the main directory, it will move the *_English.srt files under Subs
+	#	 to the top level like so:
+	#
+	#    	- file1.srt
+	#    	- file1.SDH.srt
+	#
+	#    	- file2.srt
+	#    	- file2.SDH.srt
+	#    	- file2.FOREIGN.srt
+	#    	- file2.4.srt
+	#
+	EOF
+else
+	parent="$PWD"
+	cd [Ss][Uu][Bb][Ss]
+	for dir in *; do
+		[ -d "$dir" ] || continue
+		cd "$dir"
+		index=1
+		for srt in *English*; do
+			if [ $index = 1 ]; then
+				mv "$srt" "$parent/${dir}.srt"
+			else
+				label=${labels[$index]}
+				if [ "$label" = "" ]; then
+					mv "$srt" "$parent/${dir}.${index}.srt"
+				else
+					mv "$srt" "$parent/${dir}.${label}.srt"
+				fi
+			fi
+			((index++))
+		done
+		cd ..
+	done
+	cd ..
+fi
