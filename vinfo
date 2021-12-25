@@ -44,9 +44,9 @@ foreach my $vid (@ARGV) {
 			}
 			else {
 				if($x) {
-					printf("%13s  %d ms  %d s  %12s %9s  $5 $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, "${4}x${3}",$vid)
+					printf("%13s  %d ms  %d s  %12s %9s  $5 $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, "${4}x${3}", $vid)
 				} else {
-					printf("%13s  %d ms  %d s  %12s %6sp  $5  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4,$vid)
+					printf("%13s  %d ms  %d s  %12s %6sp  $5  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4, $vid)
 				}
 			}
 			last;
