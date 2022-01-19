@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for file; do
+	stats=($(stat -t "%Y%m%d%H%M" "$file"))
+	btime=$(echo ${stats[11]} | sed 's/"//g')
+	echo touch -t ${btime} "$file"
+	touch -t ${btime} "$file"
+done
