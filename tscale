@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+if(scalar @ARGV != 2) {
+	warn("Usage: $0 mm:ss mm:ss\n - calculates the ratio of two durations as a floating point number\n");
+	exit(1);
+}
+
+sub toseconds($) {
+	my $sec = 0;
+	my $str = shift;
+	if($str =~ m#^((\d+):)?(\d+)$#) {
+		my $m = $2;
+		my $s = $3;
+		return $s + $m*60 + $h*3600;
+	}
+}
+
+my $a = toseconds($ARGV[0]), "\n";
+my $b = toseconds($ARGV[1]), "\n";
+
+print $a/$b, "\n";
