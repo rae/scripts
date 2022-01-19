@@ -100,6 +100,7 @@ casks=(\
 	google-hangouts \
 	ipfs \
 	iterm2 \
+	onyx \
 	qview \
 	signal \
 	skype \
