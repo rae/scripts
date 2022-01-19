@@ -2,6 +2,12 @@
 
 labels=(SDH FOREIGN)
 
+linkCommand=mv
+if [ "x${1}" = "x-l" ]; then
+	linkCommand=ln
+	shift
+fi
+
 if [ ! -d [Ss][Uu][Bb][Ss] ]; then
 	cat <<-EOF
 	#
@@ -40,14 +46,14 @@ else
 		index=1
 		for srt in *English*; do
 			if [ $index = 1 ]; then
-				mv "$srt" "$parent/${dir}.srt"
+				"${linkCommand}" "$srt" "$parent/${dir}.srt"
 			else
 				labelIndex=$((index - 2))
 				label=${labels[$labelIndex]}
 				if [ "$label" = "" ]; then
-					mv "$srt" "$parent/${dir}.${index}.srt"
+					"${linkCommand}" "$srt" "$parent/${dir}.${index}.srt"
 				else
-					mv "$srt" "$parent/${dir}.${label}.srt"
+					"${linkCommand}" "$srt" "$parent/${dir}.${label}.srt"
 				fi
 			fi
 			((index++))
