@@ -1,5 +1,5 @@
 #!/bin/zsh
-# set -x
+#set -x
 
 prog=`basename $0`
 
@@ -128,15 +128,15 @@ showExpr="$(ffmpeg -hide_banner -i "${show}" |& grep 'Video:' | head -1 | perl -
 echo "showExpr=$showExpr"
 eval "$showExpr"
 
-overlayWidth=$((reactionWidth * overlayScale))
-overlayHeight=$((reactionHeight * overlayScale))
+overlayWidth=$(dc -e "$reactionWidth $overlayScale * p")
+overlayHeight=$(dc -e "$reactionHeight $overlayScale * p")
 srcScale=$(($overlayWidth / $showWidth))
 integer hoffset
 integer voffset
 case $location in
-	right) hoffset=$((reactionWidth - showWidth*srcScale - $hmargin + 0.1)) ;;
+	right) hoffset=$(dc -e "$reactionWidth - $showWidth $srcScale * - $hmargin - 0.1 + p") ;;
 	left) hoffset=$hmargin ;;
-	*) hoffset=$((reactionWidth/2 - showWidth/2*srcScale + $hmargin + 0.1)) ;;
+	*) hoffset=$(dc -e "$reactionWidth 2 / - $showWidth 2 / $srcScale * - $hmargin + 0.1 + p") ;;
 esac
 echo "#        show size: ${showWidth}x${showHeight}: $show"
 echo "#reaction duration: ${reactionDuration} [${reactionSeconds} seconds]"
