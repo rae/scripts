@@ -21,6 +21,13 @@ if(scalar @ARGV > 0) {
 	@dirs=($dir)
 }
 
+sub mv($$) {
+	my $src = shift;
+	my $dst = shift;
+	rename $src, $dst || print("ss-rename: renaming \"$src\" to \"$dst\" failed: $!\n");
+	print("ss-rename: $dst\n");
+}
+
 sub ssrename($) {
 	my $dir = shift;
 	chdir($dir);
@@ -55,7 +62,7 @@ sub ssrename($) {
 				next;
 			}
 			d("ss-rename: renaming to \"$newname\"");
-			rename $ss, $newname || print("ss-rename: renaming failed: $!\n");
+			mv $ss, $newname;
 		}
 		elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
 			d("Found Screen $1");
@@ -86,7 +93,7 @@ sub ssrename($) {
 			next;
 		}
 		d("ss-rename: \"$ss\" => \"$newname\"");
-		rename $ss, $newname;
+		mv $ss, $newname;
 	}
 
 	# Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
@@ -97,7 +104,7 @@ sub ssrename($) {
 				warn "$0: \"$newname\" already exists. skipping $ss\n";
 				next;
 			}
-			rename $ss, $newname;
+			mv $ss, $newname;
 		}
 	}
 }
