@@ -1,6 +1,16 @@
-#!/bin/bash
+#!/bin/zsh
 
-for file; do
+if [ $# -gt 0 -a "x$1" = "x-h" ]; then
+	echo "Usage: `basename $0` [file ..]"
+	echo "If no files are supplied, then all files in the current directory are used"
+	exit 0
+fi
+
+[ $# = 0 ] && files=(*(.)) || files=("$@")
+
+# echo "# files is: --${files[@]}, # is $#"
+
+for file in ${files[@]}; do
 	stats=($(stat -t "%Y%m%d%H%M" "$file"))
 	btime=$(echo ${stats[11]} | sed 's/"//g')
 	echo touch -t ${btime} "$file"
