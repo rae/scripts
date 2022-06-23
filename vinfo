@@ -5,6 +5,7 @@ sub dbg(@) {
 
 # total duration in seconds
 my $totalDuration=0;
+my $verbose = $q ? 1 : 0;
 foreach my $vid (@ARGV) {
 	dbg "# vid=$vid\n";
 	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|)$/i;
@@ -39,7 +40,7 @@ foreach my $vid (@ARGV) {
 			$bitrate=$4;
 		} elsif(m#Video: ([^,]*), ([^,]*), (\d+)x(\d+)[^,]*,.* ([^,]* fps), ([^,]*), ([^,]*),#) {
 			# note: above regexp uses commas to delineate
-			if($d) {
+			if($e) {
 				printf("%d %s\n", ($milliseconds+500)/1000, $q ? "" : " $vid")
 			}
 			else {
@@ -53,9 +54,10 @@ foreach my $vid (@ARGV) {
 		}
 	}
 }
-unless($d) {
+unless($e) {
 	my $hours="";
 	my $minutes="";
+	my $totalSeconds = int $totalDuration + 0.5;
 	if($totalDuration > 60) {
 		if($totalDuration > 3600) {
 			my $h = int($totalDuration/3600);
@@ -67,6 +69,14 @@ unless($d) {
 		$totalDuration -= $m*60;
 	}
 	my $seconds=sprintf("%04.2fs", $totalDuration);
-	print "Total duration: ${hours}${minutes}${seconds}\n\n";
+	if($q) {
+		if($d) {
+			print "${totalSeconds}\n";
+		} else {
+			print "${hours}${minutes}${seconds}\n";
+		}
+	} else {
+		print "Total duration: ${hours}${minutes}${seconds}\n\n";
+	}
 }
 
