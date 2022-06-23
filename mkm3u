@@ -38,7 +38,7 @@ if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
 fi
 
 #
-# ARG 2: n - number of seconds to chop off the start
+# ARG 2: n - number of seconds to chop off the end
 #
 endChop=0
 if [[ $1 =~ ^[0-9]*[0-9]$ ]]; then
