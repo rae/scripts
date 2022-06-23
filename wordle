@@ -1,0 +1,54 @@
+#!/bin/bash
+
+a=`basename $0`
+usage="$a <5-dot/green-letters> <bad-letters> [<good letters> <bad-position> [<bad-position>...]]"
+
+if [ $# -lt 2 ]; then
+	echo ""
+	echo "Usage: $usage"
+	echo ""
+	echo "Examples:"
+	echo ""
+	cat << EOF
+	Second letter is "L", bad letters are C, O, U, B, N, S, I. Doesn't end in D. E is not the 3rd letter.
+	D is not the 2nd-last letter.
+
+		$a .l... coubnsi de 'd\$' '^..e' 'e\$' 'd.\$'
+
+	R, A, and E are in the correct location. I, S, D, O, G, C are not in the word.
+
+		$a .ra.e isdogc
+
+EOF
+	exit 1
+fi
+
+patt="$1"
+
+bad="$2"
+
+good=""
+
+bp1=""
+bp2=""
+bp3=""
+bp4=""
+bp5=""
+bp6=""
+
+[ $# -gt 2 ] && good="$3"
+[ $# -gt 3 ] && bp1="|$4"
+[ $# -gt 4 ] && bp2="|$5"
+[ $# -gt 5 ] && bp3="|$6"
+[ $# -gt 6 ] && bp4="|$7"
+[ $# -gt 7 ] && bp5="|$8"
+[ $# -gt 8 ] && bp6="|$9"
+
+pattern="\^${patt}\$"
+badPattern="\(\[${bad}\]${bp1}${bp2}${bp3}${bp4}${bp5}${bp6}\)"
+q="'"
+qq='"'
+
+# cmd="tr '[A-Z]' '[a-z]' < /usr/share/dict/web2 | egrep '^${patt}$' | egrep -v '${badPattern}'"
+# echo $cmd
+tr '[A-Z]' '[a-z]' < /usr/share/dict/web2 | egrep "^${patt}\$" | egrep -v ${badPattern} | less
