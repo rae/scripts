@@ -8,6 +8,11 @@ if [ "x${1}" = "x-l" ]; then
 	shift
 fi
 
+if [ "x${1}" = "x-c" ]; then
+	linkCommand=cp
+	shift
+fi
+
 if [ ! -d [Ss][Uu][Bb][Ss] ]; then
 	cat <<-EOF
 	#
@@ -44,7 +49,11 @@ else
 		[ -d "$dir" ] || continue
 		cd "$dir"
 		index=1
-		for srt in *English*; do
+		all=(*)
+		if [ ${#all[@]} -gt 2 ]; then
+			all=(*[Ee][Nn][Gg]*)
+		fi
+		for srt in ${all[@]}; do
 			if [ $index = 1 ]; then
 				"${linkCommand}" "$srt" "$parent/${dir}.srt"
 			else
