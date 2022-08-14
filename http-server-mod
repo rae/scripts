@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Simple HTTP Server.
 
 This module builds on BaseHTTPServer by implementing the standard GET
@@ -13,20 +13,24 @@ __all__ = ["SimpleHTTPRequestHandler"]
 
 import os
 import posixpath
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import BaseHTTPServer
 import urllib
-from urllib.parse import urlparse
+import urlparse
 import cgi
 import sys
 import shutil
 import mimetypes
 import re
-from io import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
 
 # Reid's API key
 tmdbAPIKey = "3d801b6df71aa2ccd644d6dc38ec53ce"
 
-class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+class SimpleHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     """Simple HTTP request handler with GET and HEAD commands.
 
@@ -121,7 +125,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 # strip out temporary files, dot files, subtitles and executables
                 str.startswith("#") or str.startswith(".") or str.endswith(".srt")
                 or str.endswith(".sub") or str.endswith(".idx") or str.endswith(".txt")
-                or str.endswith(".vtt") or str.endswith(".exe") or str.endswith(".part")
+                or str.endswith(".vtt") or str.endswith(".exe")
             )
 
         try:
@@ -334,9 +338,10 @@ p {
         })
 
 
-def test(HandlerClass = SimpleHTTPRequestHandler, ServerClass = HTTPServer):
-    server = ServerClass(('', 3000), HandlerClass())
-    # BaseHTTPServer.test(HandlerClass, ServerClass)
+def test(HandlerClass = SimpleHTTPRequestHandler,
+         ServerClass = BaseHTTPServer.HTTPServer):
+    BaseHTTPServer.test(HandlerClass, ServerClass)
+
 
 if __name__ == '__main__':
     test()
