@@ -1,4 +1,16 @@
 #!/bin/zsh
+
+# over <reaction-video-file> <show-video-file>
+#	Take two videos ("reaction" and "show") and overlay "show" along the bottom of
+#	the reaction. There are options to:
+#
+#		- add margins
+#		- set the size of the reaction (default is 1/4 of the screen — i.e. 0.5 scale)
+#		- set location left/center/right (default center)
+#		- only process the first X seconds (to test the video)
+#		- start the show X seconds after the beginning of the reaction
+#
+
 #set -x
 
 prog=`basename $0`
