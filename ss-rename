@@ -35,11 +35,11 @@ sub ssrename($) {
 	dd("PWD is ", `pwd`);
 
 	# Screen Recording 2020-11-19 at 18.13.50.mov
-
+	# Screenshot 2022-07-04 at 5.33.06 PM
 	for my $ss (<"*">) {
 		my $newname="";
 		d("ss-rename: checking \"$ss\"");
-		if($ss =~ /Screen (Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
+		if($ss =~ /Screen ?(Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/) {
 			my $date = $2;
 			my $hour = $3;
 			my $minutes = $4;
@@ -64,7 +64,7 @@ sub ssrename($) {
 			d("ss-rename: renaming to \"$newname\"");
 			mv $ss, $newname;
 		}
-		elsif($ss =~ /Screen (Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
+		elsif($ss =~ /Screen ?(Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
 			d("Found Screen $1");
 			my $date = $2;
 			my $hour = $3;
@@ -97,8 +97,8 @@ sub ssrename($) {
 	}
 
 	# Simulator Screen Shot - iPhone Xs Max (UAT, FR) - 2018-12-04 at 15.26.31
-	for my $ss (<"Simulator Screen Shot*">) {
-		if($ss =~ /Simulator Screen Shot - (.*) - (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z][a-z][a-z])/) {
+	for my $ss (<"Simulator Screen ?Shot*">) {
+		if($ss =~ /Simulator Screen ?Shot - (.*) - (\d\d\d\d\-\d\d-\d\d) at (\d\d)\.(\d\d\.\d\d)\.([a-z][a-z][a-z])/) {
 			my $newname="simulator.${2}.${3}${4}.${1}.${5}";
 			if(-e $newname) {
 				warn "$0: \"$newname\" already exists. skipping $ss\n";
