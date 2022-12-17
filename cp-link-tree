@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# set -x
+
+copy="cp -al"
+
+# grep destination directory
+dest="${@: -1}"
+
+# remove last argument, leaving only files
+set -- "${@:1:$(($#-1))}"
+
+for file; do
+	relative_dir="${file%/*}"
+	# only create a dir if there is a dir part
+	if [ "$file" != "$relative_dir" ]; then
+		mkdir -p "${dest}/${relative_dir}"
+	fi
+	echo ${copy} "$file" "${dest}/${file}"
+	${copy} "$file" "${dest}/${file}"
+done
