@@ -6,28 +6,70 @@
 # debugging
 # set -x
 
+width=$(tput cols)
+
 p() {
-    echo ""
     echo "$(date) -- $*"
 }
 
+containsElement() {
+  local e match="$1"
+  shift
+  for e; do
+	  [ "$e" = "$match" ] && return 0
+  done
+  return 1;
+}
+
+parr() {
+	for i; do
+		echo "$i"
+	done \
+	| git column --mode=column --width $((width-2)) \
+	| sed 's/^/  /'
+}
+
+install() {
+	local app="$1"
+	if containsElement "${app}" "${brews[@]}"; then
+		p "Already installed: ${app}" > /dev/null
+	else
+		p "Installing: ${app}"
+		brew install "${app}" 2>&1 | sed -e 's/^/    /'
+		# The first time brew runs, it updates itself. Do not update Homebrew again
+		export HOMEBREW_NO_AUTO_UPDATE=1
+	fi
+}
+
+# Where Homebrew lives on the net
 BREW_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+
+# disable per-install cleanup
+export HOMEBREW_NO_INSTALL_CLEANUP=1
+# tell Homebrew to keep quiet
+export HOMEBREW_NO_ENV_HINTS=1
 
 # cd to $HOME
 cd
 
 if [ ! -r /usr/bin/git ]; then
-	p installing Xcode command line tools
-	xcode-select --install
+	p installing Xcode command line tools - may involve clicking "OK" ion a dialog..
+	xcode-select --install || exit 1
 fi
 
 if [ ! -r /usr/local/bin/brew -a ! -r /opt/homebrew/bin/brew ]; then
 	p Setting up homebrew
-	/bin/bash -c "$(curl -fsSL ${BREW_URL})"
+	/bin/bash -c "$(curl -fsSL ${BREW_URL})" || exit 1
 	# update hash
 	hash -r
 fi
 
+# get list of installed brews
+p List of installed brews:
+brews=($(brew list -1))
+parr "${brews[@]}" | sed 's/^/  /'
+
+# set up home directory based on a remote git repo
 if [ ! -r bin/noarch ]; then
 	p Trying to use git to clone "'home'"
 	git clone --recursive clith@clith.com:git/home
@@ -38,12 +80,12 @@ if [ ! -r bin/noarch ]; then
 	rmdir home
 fi
 
-
 # "coretools" include GNU ls et al.
 installs=( \
 	chocolate-doom \
 	cmake \
-	coretools \
+	cmake-docs \
+	coreutils \
 	cvs \
 	docker \
 	ffmpeg \
@@ -58,7 +100,7 @@ installs=( \
 	media-info \
 	mkvtoolnix \
 	ncftp \
-	npm \
+	node \
 	p7zip \
 	qprint \
 	rar \
@@ -69,43 +111,36 @@ installs=( \
 	\
 	publish \
 )
-p installing $installs
-brew install $installs
+p installing:
+parr "${installs[@]}"
+for i in "${installs[@]}"; do
+	install "$i"
+done
 
-# The first time brew runs, it updates itself. Do not update Homebrew again
-export HOMEBREW_NO_AUTO_UPDATE=1
-
-# cask installs macOS apps in /Applications. These are grouped roughtly by smiilarity,
+# macOS apps in /Applications. These are grouped roughtly by smiilarity,
 # and then alphabetical
 # - not firefox
 # - not google-chrome
-p installing various casks to /Applications
 casks=(\
-	atom \
 	calibre \
 	qlmarkdown \
 	webpquicklook \
-	sublime-text \
 	textmate \
-	typora \
 	\
 	authy \
-	brave-browser \
 	betterzip \
+	betterdisplay \
 	discord \
 	firefox \
-	franz \
+	fork \
 	go2shell \
 	google-chrome \
-	google-hangouts \
+	google-chat \
 	ipfs \
 	iterm2 \
-	onyx \
 	qview \
 	signal \
-	skype \
 	slack \
-	soundflower \
 	steam \
 	telegram \
 	tor-browser \
@@ -113,86 +148,55 @@ casks=(\
 	whatsapp \
 	wireshark \
 	\
-	adobe-dng-converter \
-	\
 	dropbox \
-	google-backup-and-sync \
-	zenmap \
 	\
 	4k-video-downloader \
 	audio-hijack \
 	blender \
-	calibre \
 	freac \
 	handbrake \
 	krita \
-	linein \
-	loopback \
 	makemkv \
 	openshot-video-editor \
-	qlvideo \
-	soundcloud-downloader \
 	vuescan \
 	vlc \
-	xnviewmp \
 	\
-	asset-catalog-tinkerer \
-	cocoscreator \
 	devdocs \
-	docker \
-	docker-toolbox \
-	gitup \
-	godot \
 	kitematic \
 	qlswift \
 	sourcetree \
-	texturepacker \
-	tiled \
-	vagrant \
-	virtualbox \
-	virtualbox-extension-pack \
 	\
 	aerial \
 	clipy \
-	cyberduck \
-	darktable \
 	fission \
 	gnucash \
-	geotag \
-	hockey \
-	iswiff \
-	keybase \
-	licecap \
 	megasync \
 	simple-comic \
 	\
-	adventure \
 	angband \
 	bzflag \
 	gog-galaxy \
 	ioquake3 \
-	steamcmd \
+	open-adventure \
 	\
-	geektool \
-	mounty \
 	postman \
-	servetome \
 	\
+	dbeaver-community \
 	mesasqlite \
 	provisionql \
 	qlmobi \
 )
 
-for cask in ${casks[*]}; do
-	echo "# `date` -- installing cask $cask"
-	brew install homebrew/cask/"$cask" || echo "## cask $cask failed"
+p installing to /Applications:
+parr "${casks[@]}"
+for cask in "${casks[@]}"; do
+	install "$cask"
 done
 
 p Setting up macOS
 # defaults write com.apple.menuextra.battery ShowPercent YES
 defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  HH:mm"
 
-#
 # all of this is to simply set the default name of screenshots to yyyy-mm-dd.hhmm.ss.jpg
 #
 shotPList="~/Library/LaunchAgents/local.job.plist"
@@ -204,14 +208,18 @@ if [ ! -r "$shotPList" ]; then
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Disabled</key>   <false/>
-	<key>Label</key>      <string>local.job</string>
-	<key>Program</key>     <string>$HOME/bin/noarch-public/ss-rename</string>
-	<key>RunAtLoad</key>  <true/>
-	<key>WatchPaths</key> <array><string>$HOME/Desktop</string></array>
+	<key>Disabled</key><false/>
+	<key>Label</key><string>local.job</string>
+	<key>Program</key><string>$HOME/bin/noarch-public/ss-rename</string>
+	<key>RunAtLoad</key><true/>
+	<key>WatchPaths</key><array><string>$HOME/Desktop</string></array>
 </dict>
 </plist>
 EOF
 fi
+
+# final Homebrew cleanup
+p "Cleaning up homebrew"
+brew cleanup 2>&1 | sed 's/^/    /'
 
 p All done.
