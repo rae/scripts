@@ -15,9 +15,9 @@ foreach my $vid (@ARGV) {
 	my $milliseconds=0;
 	while(<FFMPEG>) {
 		chomp;
+		dbg "line: $_";
 		# get rid of an parenthesized stuff that might have commas
 		s/ *\([^)]*\)//g;
-		# dbg "FF: $_";
 		if(m#Duration: (\d\d):(\d\d):([\d.]+).*bitrate: (\d+ [a-z/]+)#) {
 			my $hours = $1;
 			my $minutes = $2;
@@ -38,7 +38,10 @@ foreach my $vid (@ARGV) {
 			$duration="$h$m$s";
 			$milliseconds=($seconds + $minutes*60 + $hours*3600)* 1000;
 			$bitrate=$4;
-		} elsif(m#Video: ([^,]*), ([^,]*), (\d+)x(\d+)[^,]*,.* ([^,]* fps), ([^,]*), ([^,]*),#) {
+		}
+		#  Video: hevc (Main), yuv420p(tv, bt709), 1920x1080 [SAR 1:1 DAR 16:9], 23.98 fps, 23.98 tbr, 1k tbn (default)
+		if(m#Video: ([^,]*), ([^,]*), (\d+)x(\d+)[^,]*,.* ([^,]* fps), ([^,]*), ([^,]*)#) {
+			dbg "video - $1 - $2 - $3 - $4 - $5 - $6\n";
 			# note: above regexp uses commas to delineate
 			if($e) {
 				printf("%d %s\n", ($milliseconds+500)/1000, $q ? "" : " $vid")
