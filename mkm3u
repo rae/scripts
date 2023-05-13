@@ -56,7 +56,7 @@ safe() {
 }
 
 for i; do
-	dur=$(vinfo -d -q "$i")
+	dur=$(vinfo -e "$i" | awk '{ print $1; }')
 	durLessChop="$((dur - endChop))"
 	m3u="${i%.???}".m3u
 	if $skipIfExists && [ -r "$m3u" ]; then
