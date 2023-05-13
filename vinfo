@@ -6,6 +6,10 @@ sub dbg(@) {
 # total duration in seconds
 my $totalDuration=0;
 my $verbose = $q ? 1 : 0;
+my $showOnlyVertical = 1;
+$showOnlyVertical = 0 if $x;
+my $showAbbreviated = 0;
+$showAbbreviated = 1 if $e;
 foreach my $vid (@ARGV) {
 	dbg "# vid=$vid\n";
 	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|)$/i;
@@ -43,21 +47,20 @@ foreach my $vid (@ARGV) {
 		if(m#Video: ([^,]*), ([^,]*), (\d+)x(\d+)[^,]*,.* ([^,]* fps), ([^,]*), ([^,]*)#) {
 			dbg "video - $1 - $2 - $3 - $4 - $5 - $6\n";
 			# note: above regexp uses commas to delineate
-			if($e) {
+			if($showAbbreviated) {
 				printf("%d %s\n", ($milliseconds+500)/1000, $q ? "" : " $vid")
-			}
-			else {
-				if($x) {
-					printf("%13s  %d ms  %d s  %12s %9s  $5 $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, "${4}x${3}", $vid)
-				} else {
+			} else {
+				if($showOnlyVertical) {
 					printf("%13s  %d ms  %d s  %12s %6sp  $5  $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, $4, $vid)
+				} else {
+					printf("%13s  %d ms  %d s  %12s %9s  $5 $1  \"%s\"\n", $duration, $milliseconds, $milliseconds/1000, $bitrate, "${4}x${3}", $vid)
 				}
 			}
 			last;
 		}
 	}
 }
-unless($e) {
+unless($showAbbreviated) {
 	my $hours="";
 	my $minutes="";
 	my $totalSeconds = int $totalDuration + 0.5;
