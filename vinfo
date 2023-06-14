@@ -10,7 +10,21 @@ my $showOnlyVertical = 1;
 $showOnlyVertical = 0 if $x;
 my $showAbbreviated = 0;
 $showAbbreviated = 1 if $e;
+
+if(scalar @ARGV == 0) {
+	push(@ARGV, <*.m??>);
+	push(@ARGV, <*.webm>);
+	@ARGV = sort @ARGV;
+}
+my @files = @ARGV;
+
 foreach my $vid (@ARGV) {
+	if(-d $vid) {
+		push @ARGV, <"${vid}"/*.m??>;
+		push @ARGV, <"${vid}"/*.webm>;
+		@ARGV = sort @ARGV;
+		next;
+	}
 	dbg "# vid=$vid\n";
 	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|)$/i;
 	open(FFMPEG, "ffmpeg -hide_banner -i \"$vid\" 2>&1 |") || die "${0}: can't read \"$vid\": $!\n";
@@ -81,8 +95,7 @@ unless($showAbbreviated) {
 		} else {
 			print "${hours}${minutes}${seconds}\n";
 		}
-	} else {
+	} elsif($t) {
 		print "Total duration: ${hours}${minutes}${seconds}\n\n";
 	}
 }
-
