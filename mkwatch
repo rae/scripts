@@ -21,7 +21,7 @@ read -r -d '' html <<EOF
 <body>
 	<div class="video-container">
 		<video controls autoplay>
-		  <source src="%%url%%/%%FILENAME%%#t=${offset}" type="video/mp4">
+		  <source src="../%%FILENAME%%" type="video/mp4">
 		</video>
 	</div>
 </body>
@@ -40,7 +40,7 @@ for video in *.{mp4,avi,mkv,m4v,webm,mov,flv,vob,ogv,ogg,ts,m2ts,qt,wmv,rm,asf,m
     urlvideo=$(echo "$video" | perl -e 'use URI::Escape; $v=<>; chomp($v); $v =~ s#%#%%#g; print uri_escape_utf8($v);')
     echo "$basename"
     echo "$html" \
-        | perl -p -e "s#%%FILENAME%%#${urlvideo}#; s#%%url%%#http://${host}${port}/${dir}#" \
+        | perl -p -e "s#%%FILENAME%%#${urlvideo}#;" \
 	    > watch/"${basename}".html
 done
 echo ""
