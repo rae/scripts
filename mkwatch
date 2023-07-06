@@ -1,15 +1,20 @@
 #!/bin/bash
 
-offset=${1-0}
-echo "Offset is $offset"
+# ignore * patterns that don't match anything
+shopt -s nullglob
 
-# assume web server points to a disk under /Volumes (typical for macOS)
-dir="${PWD#/Volumes/}"
 host="${HOSTNAME-$(hostname)}"
 port=":${PORT-3030}"
+site=${WATCHHOST-"${host}${port}"}
+prefix=${WATCHPREFIX-}
 
-# template for each video's web page
-read -r -d '' html <<EOF
+[ $# = 0 ] && set .
+for show; do
+	cd "${show}"
+	# assume web server points to a disk under /Volumes (typical for macOS)
+	dir="${PWD#/Volumes/}"
+	# template for each video's web page
+	read -r -d '' html <<EOF
 <!DOCTYPE html>
 <html lang="en">
 	<style>
@@ -28,23 +33,18 @@ read -r -d '' html <<EOF
 </html>
 EOF
 
-# make sure the "watch" dir is there
-mkdir -p watch
+	# make sure the "watch" dir is there
+	mkdir -p watch
 
-# ignore * patterns that don't match anything
-shopt -s nullglob
-
-# assume video files are named .mp4 or .mkv or .m4v or something starting with 'm'
-for video in *.{mp4,avi,mkv,m4v,webm,mov,flv,vob,ogv,ogg,ts,m2ts,qt,wmv,rm,asf,muddypawsgames@gmail.com,mpeg}; do
-    basename="${video%%.???}"
-    urlvideo=$(echo "$video" | perl -e 'use URI::Escape; $v=<>; chomp($v); $v =~ s#%#%%#g; print uri_escape_utf8($v);')
-    echo "$basename"
-    echo "$html" \
-        | perl -p -e "s#%%FILENAME%%#${urlvideo}#;" \
-	    > watch/"${basename}".html
+	# assume video files are named .mp4 or .mkv or .m4v or something starting with 'm'
+	for video in *.{mp4,avi,mkv,m4v,webm,mov,flv,vob,ogv,ogg,ts,m2ts,qt,wmv,rm,asf,muddypawsgames@gmail.com,mpeg}; do
+	    basename="${video%%.???}"
+	    urlvideo=$(echo "$video" | perl -e 'use URI::Escape; $v=<>; chomp($v); $v =~ s#%#%%#g; print uri_escape_utf8($v);')
+	    echo "$html" \
+	        | perl -p -e "s#%%FILENAME%%#${urlvideo}#;" \
+		    > watch/"${basename}".html
+	done
+	dir=$(echo "$dir" | perl -pe "s#${prefix}/##; s/ /%20/g;")
+	echo "> http://${site}/${dir}/watch"
+	cd ..
 done
-echo ""
-echo ""
-echo ""
-echo "> http://${host}${port}/${dir}"
-echo ""
