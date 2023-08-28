@@ -6,8 +6,8 @@ sub dbg(@) {
 # total duration in seconds
 my $totalDuration=0;
 my $verbose = $q ? 1 : 0;
-my $showOnlyVertical = 1;
-$showOnlyVertical = 0 if $x;
+my $showOnlyVertical = 0;
+$showOnlyVertical = 1 if $x;
 my $showAbbreviated = 0;
 $showAbbreviated = 1 if $e;
 
