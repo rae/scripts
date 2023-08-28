@@ -1,9 +1,34 @@
 #!/usr/bin/perl
 
+my $profile = "Default";
+my $reason = "";
+
+my $chromeLib= "Library/Application Support/Google/Chrome";
+chdir("$ENV{HOME}/${chromeLib}") || die "Cannot cd to Chrome's app support: $!\n";
+my @profiles = <*/Bookmarks>;
+
+if(scalar @ARGV > 0) {
+	# prefer command-line profile argument
+	$profile = $ARGV[0];
+	$reason = " [command argument]";
+} elsif(scalar @profiles > 1) {
+	# otherwise default to largest Bookmarks file
+	my @sorted = sort { -s $b <=> -s $a } @profiles;
+	my $largest = shift @sorted;
+	if($largest =~ m#(.*)/Bookmarks#) {
+		$profile = ${1};
+		$reason = " [largest profile under ${chromeLib}]"
+	}
+}
+# Alert user to which profile being used, and why
+print("# Using profile \"$profile\"$reason\n");
+
 my $home = $ENV{"HOME"};
-open(PIPE, "chrome-timestamp-parse < \"${home}/Library/Application Support/Google/Chrome/Default/Bookmarks\"|")
+open(PIPE, "chrome-timestamp-parse < \"${home}/Library/Application Support/Google/Chrome/$profile/Bookmarks\"|")
 || die "Cannot run \"chrome-timestamp-parse\": $!\n";
-my $date="";
+
+my $date="???";
+
 while(<PIPE>) {
 	if(/"date_added": "(\d\d\d\d-\d\d-\d\d) (\d\d\d\d\.\d\d)/) {
 		$date="${1}.${2}";
