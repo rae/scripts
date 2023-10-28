@@ -80,7 +80,9 @@ exit(0) if $f;
 chdir($dir);
 chdir($src) || die "Can't cd to $src: $!\n";
 
+print "\n";
 print "\n# scanning ${yellow}${src}${off}\n" if $verbose;
+
 my @keys = sort keys %md5;
 my @matches=();
 my @mismatches=();
