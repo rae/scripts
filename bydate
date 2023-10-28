@@ -1,13 +1,44 @@
 #!/usr/bin/env perl
 
-use File::Path qw(make_path remove_tree);
+use File::Path qw(mkpath remove_tree);
 use File::Find;
 use POSIX qw(strftime);
+use Getopt::Long;
+use Text::Tabs;
 
-my $skipDirs = 1;
-if($ARGV[0] eq "-d") {
-	$skipDirs = 0;
+# get base program name
+(my $prog = $0) =~ s!.*/(.*)$!$1!;
+
+my %options = (
+	help    => 0,
+	recurse	=> 0,
+	noDirs  => 0,
+	verbose => 0
+);
+
+GetOptions(
+	"--help"     => \$options{help},
+	"--noDirs"   => \$options{noDirs},
+	"--recurse"  => \$options{recurse},
+	"--verbose"  => \$options{verbose}
+);
+
+my $usage = expand(<<"EOF") . "\n";
+
+	$prog [-h] [-l] [-r] [-v]
+	
+	-h|--help     print this verbose help
+	-n|--noDirs   prevent symlinks to dirs
+	-r|--recurse  only show files, recursing down the folder hierarchy
+	-v|--verbose  print extra information
+	
+EOF
+
+if($options{help}) {
+    print $usage;
+    exit(0);
 }
+
 my $esc = chr(27);
 my $red = "${esc}[41m";
 my $yellow = "${esc}[43m";
@@ -18,7 +49,8 @@ my $ddir = "+bydate";
 my $rmCount = remove_tree($ddir);
 
 # create new "+bydate"
-@dirs = make_path(($ddir));
+@dirs = mkpath(($ddir));
+chmod 0755, $ddir;
 
 if(scalar @dirs == 0) {
 	warn "Unable to create \"$ddir\". Exiting.\n";
@@ -26,12 +58,11 @@ if(scalar @dirs == 0) {
 }
 
 my @unorderedFilelist;
-if($skipDirs) {
-	@unorderedFilelist = <*>;
-	push @unorderedFilelist, <*/*>;
-}
-else {
+if($options{recurse}) {
 	@unorderedFilelist = (`find . -type f`);
+} else {
+	@unorderedFilelist = <*>;
+	#push @unorderedFilelist, <*/*>;
 }
 
 my @sortedFilelist = sort { -M $a <=> -M $b } @unorderedFilelist;
@@ -40,13 +71,16 @@ my $fmt = sprintf("%%0%dd", int(log10(scalar @unorderedFilelist))+1);
 
 foreach $file (@sortedFilelist) {
 	chomp($file);
-	next if -d $file;
-	next if $file =~ m#/\..*#;
+	next if -d $file && $options{noDirs} == 1;
+	next if $file eq $ddir;
+	next if $file =~ m#^@.*#;
+	next if $file =~ m#^\+.*#;
+	next if $file =~ m#^\..*#;
 	# skip subtitles, playlists
 	next if $file =~ /.*\.(srt|idx|sub|txt|nfo|exe|m3u)$/;
 	$file =~ s#^\./##;
-	print "### ";
-	process($file)
+	print "### $file  ==> " if $options{verbose};
+	process($file);
 }
 
 sub process($) {
@@ -64,8 +98,12 @@ sub process($) {
 	else {
 		$dest = "$ddir/$str.$file";
 	}
-	print "$dest\n";
-	link $file, $dest || warn "Link failed: $dest\n";
+	print "$dest\n" if $options{verbose};
+	if(-d $file) {
+		symlink "../$file", $dest || warn "SymLink failed: $dest\n";
+	} else {
+		link $file, $dest || warn "Link failed: $dest\n";
+	}
 }
 
 sub log10 {
