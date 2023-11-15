@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::stat;
+
+my @dirs = <*>; # use the current directory as the default
+
+# check if the user has specified directories to check
+if (@ARGV) {
+    # use the directories specified by the user
+    @dirs = @ARGV;
+}
+
+foreach $dir (@dirs) {
+	opendir(my $dh, $dir) || die "can't opendir $dir: $!";
+
+    my $latest_mod_time = 0;
+	while (my $file = readdir($dh)) {
+	    next if $file eq '.' or $file eq '..';
+
+	    my $path = "$dir/$file";
+	    next unless -d $path; # skip files that aren't directories
+
+        my $stat = stat($path);
+
+        if ($stat->mtime > $latest_mod_time) {
+            $latest_mod_time = $stat->mtime;
+        }
+	}
+	closedir($dh);
+
+    utime(time, $latest_mod_time, $path) || die "can't set mod time for $path: $!";
+}
