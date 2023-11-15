@@ -2,6 +2,7 @@
 
 use File::Path qw(mkpath remove_tree);
 use File::Find;
+use File::stat;
 use POSIX qw(strftime);
 use Getopt::Long;
 use Text::Tabs;
@@ -100,7 +101,12 @@ sub process($) {
 	}
 	print "$dest\n" if $options{verbose};
 	if(-d $file) {
+		# symlink, preserving modification times
+		($atime, $mtime) = (stat($file))[8,9];
 		symlink "../$file", $dest || warn "SymLink failed: $dest\n";
+		# put back old update times
+		utime($atime, $mtime, $dest);
+		utime($atime, $mtime, $file);
 	} else {
 		link $file, $dest || warn "Link failed: $dest\n";
 	}
