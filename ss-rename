@@ -39,7 +39,7 @@ sub ssrename($) {
 	for my $ss (<"*">) {
 		my $newname="";
 		d("ss-rename: checking \"$ss\"");
-		if($ss =~ /Screen ?(Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/i) {
+		if($ss =~ /S.* ?(Recording|Shot) (\d\d\d\d-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d)( [AP]M)?\.(\w\w\w)/i) {
 			my $date = $2;
 			my $hour = $3;
 			my $minutes = $4;
@@ -64,7 +64,7 @@ sub ssrename($) {
 			d("ss-rename: renaming to \"$newname\"");
 			mv $ss, $newname;
 		}
-		elsif($ss =~ /Screen ?(Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
+		elsif($ss =~ /S.* ?(Recording|Shot) (\d\d\d\d\-\d\d-\d\d) at (\d+)\.(\d\d\.\d\d) (am|pm|AM|PM)(.*)\.([a-z]+)$/i) {
 			d("Found Screen $1");
 			my $date = $2;
 			my $hour = $3;
