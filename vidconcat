@@ -1,4 +1,12 @@
 #!/bin/bash
 out=out-$(date +%F-%H%M).mp4
-ffmpeg -f concat -i "${@}" -c copy "$out"
+for i; do
+	ffmpeg -i "$i" -c copy -bsf:v hevc_mp4toannexb -f mpegts "${i:r}.ts"
+done
+in="concat:"
+for i; do
+	in="${in}${i:r}.ts|"
+done
+ffmpeg -i "${in%|}" -c copy -bsf:a aac_adtstoasc "$out"
+# ffmpeg -f concat -save 0 -i "${@}" -c copy "$out"
 echo "Output file is $out"
