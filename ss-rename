@@ -2,7 +2,14 @@
 # renames screenshots on the desktop to 2020-02-02.1234.55.ext
 #
 # my $dir = "$ENV{HOME}/Desktop";
+no warnings 'once';
 my @dirs = ("$ENV{HOME}/Desktop", "$ENV{HOME}/Pictures");
+
+my $dryrun=0;
+if($n) {
+    $dryrun=1;
+    print("Dry run - no actions will actually be taken\n");
+}
 
 sub d(@) {
 	return unless $v;
@@ -24,8 +31,12 @@ if(scalar @ARGV > 0) {
 sub mv($$) {
 	my $src = shift;
 	my $dst = shift;
-	rename $src, $dst || print("ss-rename: renaming \"$src\" to \"$dst\" failed: $!\n");
-	print("ss-rename: $dst\n");
+    if($dryrun) {
+        print("mv \"$src\" \"$dst\"\n");
+    } else {
+        rename $src, $dst || print("ss-rename: renaming \"$src\" to \"$dst\" failed: $!\n");
+    	print("ss-rename: $dst\n");
+    }
 }
 
 sub ssrename($) {
@@ -85,6 +96,12 @@ sub ssrename($) {
 			my $ext = $6;
 			$newname="${date}.${hour}${min}.${sec}.${ms}.$ext";
 		}
+        elsif($ss =~ /^RPReplay_Final(\d+)\.(\w+)$/) {
+            my $timestamp = `date -r $1 +%F.%H%M`;
+            chomp($timestamp);
+            my $ext = lc $2;
+            $newname = "$timestamp.$ext";
+        }
 		else {
 			next;
 		}
