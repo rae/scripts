@@ -26,7 +26,7 @@ foreach my $vid (@ARGV) {
 		next;
 	}
 	dbg "# vid=$vid\n";
-	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|)$/i;
+	next unless $vid =~ /\.(mpg|mpeg|mkv|mov|mp4|m4v|flv|webm|rm|wmv|avi|asf|mp3|m4a|ogg|)$/i;
 	open(FFMPEG, "ffmpeg -hide_banner -i \"$vid\" 2>&1 |") || die "${0}: can't read \"$vid\": $!\n";
 	my $duration="";
 	my $bitrate="";
@@ -71,6 +71,9 @@ foreach my $vid (@ARGV) {
 				}
 			}
 			last;
+		}
+		if(m#(Audio|Stream)#) {
+			print "$_, Duration: $duration\n";
 		}
 	}
 }
