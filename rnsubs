@@ -3,6 +3,8 @@
 labels=(SDH FOREIGN)
 
 linkCommand=mv
+shouldRename=true
+
 if [ "x${1}" = "x-l" ]; then
 	linkCommand=ln
 	shift
@@ -13,10 +15,21 @@ if [ "x${1}" = "x-c" ]; then
 	shift
 fi
 
+if [ "x${1}" = "x-r" ]; then
+	shouldRename=false
+	echo not renaming
+	shift
+fi
+
 if [ ! -d [Ss][Uu][Bb][Ss] ]; then
 	cat <<-EOF
+	# Usage: rnsubs [-l | -c | -r]
 	#
-	# rnsubs: no such directory: 'Subs'
+	# -l  -- use "ln" instead of mv
+	# -c  -- use "cp" instead of mv
+	# -r  -- don't try to rename subtitle file, just move it
+	#
+    # rnsubs: no such directory: 'Subs'
 	#    
 	#    rnsubs is means for a directory structure like:
 	#    - file1
@@ -53,16 +66,31 @@ else
 		if [ ${#all[@]} -gt 2 ]; then
 			all=(*[Ee][Nn][Gg]*)
 		fi
-		for srt in ${all[@]}; do
+		for srt in "${all[@]}"; do
 			if [ $index = 1 ]; then
-				"${linkCommand}" "$srt" "$parent/${dir}.srt"
+				if $shouldRename; then
+					"${linkCommand}" "$srt" "$parent/${dir}.srt"
+				else
+					echo not renaming
+					"${linkCommand}" "$srt" "$parent"
+				fi
 			else
 				labelIndex=$((index - 2))
-				label=${labels[$labelIndex]}
+				label="${labels[$labelIndex]}"
 				if [ "$label" = "" ]; then
-					"${linkCommand}" "$srt" "$parent/${dir}.${index}.srt"
+					if $shouldRename; then
+						"${linkCommand}" "$srt" "$parent/${dir}.${index}.srt"
+					else
+						echo not renaming
+						"${linkCommand}" "$srt" "$parent"
+					fi
 				else
-					"${linkCommand}" "$srt" "$parent/${dir}.${label}.srt"
+					if $shouldRename; then
+						"${linkCommand}" "$srt" "$parent/${dir}.${label}.srt"
+					else
+						echo not renaming
+						"${linkCommand}" "$srt" "$parent"
+					fi
 				fi
 			fi
 			((index++))
